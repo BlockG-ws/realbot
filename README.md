@@ -14,8 +14,9 @@ demo: @BlockG_bot
 # 运行
 安装好依赖之后
 ```bash
-uv run main.py
+BOT_TOKEN="12345678:<your token>" uv run main.py
 ```
+默认全部功能关闭，你可以把 config.example.yaml 复制到 config.yaml 自己改一下
 
 # TODO
 我想做 matrix bot，不过这两天先不做了

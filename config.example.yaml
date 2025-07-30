@@ -1,0 +1,33 @@
+admin: 616760897
+
+# global features settings
+features:
+  # 启用 /打 这样的指令
+  actions:
+    enable: true
+  # 启用 1/0 翻转
+  bitflip:
+    enable: true
+  # 启用链接解析/清理
+  link:
+    enable: true
+  # 启用复读
+  repeater:
+    enable: true
+  # 启用统计
+  stats:
+    enable: true
+  # 启用解除频道消息在群组的置顶
+  unpin:
+    enable: true
+    regex: ''
+
+# group features settings
+# 群组 id，使用 bot api（bot 内置的 info 命令）
+-1002000000000:
+  # 要启用的功能
+  actions:
+    enable: true
+  unpin:
+    enable: false
+    regex: "r'#pin'"

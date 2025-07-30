@@ -1,0 +1,4 @@
+.idea/
+.venv/
+message_stats.json
+config.yaml

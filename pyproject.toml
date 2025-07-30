@@ -1,0 +1,12 @@
+[project]
+name = "realbot"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram==3.21.0",
+    "matrix-nio==0.25.2",
+    "python-abp==0.2.0",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.4",
+]

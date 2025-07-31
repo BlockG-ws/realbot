@@ -1,4 +1,6 @@
-admin: 616760897
+# 管理员对应的 Telegram 用户 ID
+# 你可以通过 /info 命令获取你的用户 ID
+admin: 123456789
 
 # global features settings
 features:

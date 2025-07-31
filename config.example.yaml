@@ -13,6 +13,9 @@ features:
   # 启用链接解析/清理
   link:
     enable: true
+  # 启用互送头衔
+  promote:
+    enable: true
   # 启用复读
   repeater:
     enable: true

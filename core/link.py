@@ -8,6 +8,35 @@ from aiogram.types import Message
 from config import config
 
 
+def matches_adb_selector(url, selector):
+    """Check if URL matches the given selector"""
+    if selector['type'] == 'url-pattern':
+        pattern = selector['value']
+        # Convert AdBlock pattern to regex
+        # ||domain/* becomes ^https?://[^/]*domain.*
+        # domain/* becomes .*domain.*
+        if pattern.startswith('||'):
+            domain_pattern = pattern[2:]
+            # Escape special regex chars except * which we'll convert to .*
+            domain_pattern = re.escape(domain_pattern).replace(r'\*', '.*')
+            regex_pattern = f"^https?://[^/]*{domain_pattern}"
+        else:
+            # Escape special regex chars except * which we'll convert to .*
+            regex_pattern = re.escape(pattern).replace(r'\*', '.*')
+
+        return bool(re.search(regex_pattern, url))
+    return False
+
+def should_remove_param(url, filter_rule):
+    """Check if parameter should be removed based on filter rule"""
+    if filter_rule.action == 'allow':
+        return False  # Allowlist rules prevent removal
+
+    if filter_rule.selector:
+        return matches_adb_selector(url, filter_rule.selector)
+
+    return True  # No selector means apply to all URLs
+
 def extend_short_urls(url):
     """ 扩展短链接 """
     r = requests.get(url)
@@ -42,22 +71,46 @@ def remove_tracking_params(url):
     parsed_url = urlparse(url)
     query_params = parse_qs(parsed_url.query)
 
-    tracking_params = []
+    # Modified tracking_params collection
+    tracking_rules = []
 
-    with open('assets/LegitimateURLShortener.txt','r', encoding='utf-8') as f:
+    with open('assets/LegitimateURLShortener.txt', 'r', encoding='utf-8') as f:
         for line in parse_filterlist(f):
             if hasattr(line, 'options') and line.options:
                 for option in line.options:
                     if option[0] == 'removeparam':
-                        tracking_params.append(option[1])
-    for param in tracking_params:
-        query_params.pop(param, None)
+                        tracking_rules.append(line)
+                        break  # Only add rule once even if multiple removeparam options
 
-    # Rebuild the URL without tracking parameters
-    cleaned_query = urlencode(query_params, doseq=True)
-    cleaned_url = urlunparse(parsed_url._replace(query=cleaned_query))
+    for rule in tracking_rules:
+        if not should_remove_param(url, rule):
+            continue
 
-    return cleaned_url
+        for option in rule.options or []:
+            if option[0] == 'removeparam':
+                param_pattern = option[1]
+
+                if param_pattern is True:  # Remove all params
+                    query_params.clear()
+                    break
+                elif isinstance(param_pattern, str):
+                    # Handle regex patterns
+                    if param_pattern.startswith('/') and param_pattern.endswith('/'):
+                        regex_pattern = param_pattern[1:-1]
+                        params_to_remove = [
+                            param for param in query_params.keys()
+                            if re.search(regex_pattern, param)
+                        ]
+                    else:
+                        # Exact match
+                        params_to_remove = [param_pattern] if param_pattern in query_params else []
+
+                    for param in params_to_remove:
+                        query_params.pop(param, None)
+
+    # Reconstruct URL
+    new_query = urlencode(query_params, doseq=True)
+    return urlunparse(parsed_url._replace(query=new_query))
 
 def reserve_whitelisted_params(url):
     """ 保留白名单中的参数 """
@@ -85,7 +138,7 @@ def transform_into_fixed_url(url):
 
     if parsed_url.hostname in ['x.com', 'twitter.com']:
         # 把 twitter 的链接转换为 fixupx.com
-        return urlunparse(parsed_url._replace(hostname='i.fixupx.com'))
+        return urlunparse(parsed_url._replace(netloc='i.fixupx.com'))
     return url
 
 
@@ -104,6 +157,7 @@ async def handle_links(message: Message):
             extended_url = extend_short_urls(cleaned_url)
             only_wl_params_url = reserve_whitelisted_params(extended_url)
             #untracked_url = remove_tracking_params(only_wl_params_url)
+            # TODO: fix
             fixed_url = transform_into_fixed_url(only_wl_params_url)
             # Do something with the processed URL
             await message.reply(f"清理完成：\n{fixed_url}")

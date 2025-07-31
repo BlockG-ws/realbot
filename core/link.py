@@ -1,6 +1,9 @@
+import aiohttp
 import requests
 import re
 import html
+import asyncio
+
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from abp.filters import parse_filterlist
 from aiogram.types import Message
@@ -37,19 +40,20 @@ def should_remove_param(url, filter_rule):
 
     return True  # No selector means apply to all URLs
 
-def extend_short_urls(url):
+async def extend_short_urls(url):
     """ 扩展短链接 """
-    r = requests.get(url, allow_redirects=False)
-    if 'tb.cn' in urlparse(url).hostname:
-        # 淘宝短链接特殊处理
-        html_content = r.text
-        url = extract_tb_url_from_html(html_content)
-        if not url:
-            return url
-    if r.status_code in [301,302,304,307,308] and 'Location' in r.headers:
-        return r.headers['Location']
-    return url
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url,allow_redirects=False) as r:
 
+            if 'tb.cn' in urlparse(url).hostname:
+                # 淘宝短链接特殊处理
+                html_content = await r.text()
+                url = extract_tb_url_from_html(html_content)
+                if not url:
+                    return url
+            if r.status in [301, 302, 304, 307, 308] and 'Location' in r.headers:
+                return r.headers['Location']
+    return url
 
 def extract_tb_url_from_html(html_content):
     # 使用正则表达式匹配 var url = '...' 的模式
@@ -142,6 +146,28 @@ def transform_into_fixed_url(url):
         return urlunparse(parsed_url._replace(netloc='www.bilibili.com'))
     return url
 
+async def process_url(url):
+    # 首先清理跟踪参数
+    cleaned_url = remove_tracking_params(url)
+    # 扩展短链接
+    extended_url = await extend_short_urls(cleaned_url)
+    # 对于一些网站，只保留白名单中的参数
+    if urlparse(extended_url).hostname in ['item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
+                                           'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
+                                           'space.bilibili.com', 'live.bilibili.com']:
+        final_url = reserve_whitelisted_params(extended_url)
+        if urlparse(extended_url).hostname in ['bilibili.com', 'm.bilibili.com']:
+            final_url = transform_into_fixed_url(final_url)
+    elif urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
+        # 对于 Twitter 链接，转换为 fixupx.com
+        removed_tracking_url = remove_tracking_params(extended_url)
+        final_url = transform_into_fixed_url(removed_tracking_url)
+    else:
+        # 对于其他链接，直接对其进行跟踪参数清理
+        final_url = remove_tracking_params(extended_url)
+
+    return final_url
+
 
 async def handle_links(message: Message):
     if not config.is_feature_enabled('link', message.chat.id):
@@ -152,25 +178,7 @@ async def handle_links(message: Message):
     # Extract URLs from message text
     if message.text:
         urls = re.findall(url_pattern, message.text)
-        final_urls = []
-        for url in urls:
-            # 首先清理跟踪参数
-            cleaned_url = remove_tracking_params(url)
-            # 扩展短链接
-            extended_url = extend_short_urls(cleaned_url)
-            # 对于一些网站，只保留白名单中的参数
-            if urlparse(extended_url).hostname in ['item.taobao.com','detail.tmall.com','h5.m.goofish.com','music.163.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
-                final_url = reserve_whitelisted_params(extended_url)
-                if urlparse(extended_url).hostname in ['bilibili.com', 'm.bilibili.com']:
-                    final_url = transform_into_fixed_url(final_url)
-            elif urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
-                # 对于 Twitter 链接，转换为 fixupx.com
-                removed_tracking_url = remove_tracking_params(extended_url)
-                final_url = transform_into_fixed_url(removed_tracking_url)
-            else:
-                # 对于其他链接，直接对其进行跟踪参数清理
-                final_url = remove_tracking_params(extended_url)
-            final_urls.append(final_url)
+        final_urls = await asyncio.gather(*[process_url(url) for url in urls])
 
         # 回复处理后的链接
         if final_urls:

@@ -53,7 +53,7 @@ class TelegramAdapter:
         # link 模块
         router.message(F.text.regexp(r'https?:\/\/(?:www\.)?([-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b)*(\/[\/\d\w\.-]*)*(?:[\?])*(.+)*'))(handle_links)
         # repeater 模块
-        router.message(F.text & (F.chat.type.in_({'group', 'supergroup'})))(MessageRepeater().handle_message)
+        router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
 
         # 捕获所有其他消息
         router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)

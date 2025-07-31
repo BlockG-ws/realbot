@@ -52,7 +52,12 @@ async def extend_short_urls(url):
                 if not url:
                     return url
             if r.status in [301, 302, 304, 307, 308] and 'Location' in r.headers:
-                return r.headers['Location']
+                if 'http' in r.headers['Location']:
+                    return r.headers['Location']
+                else:
+                    # 如果 Location 头部没有 http 前缀，可能是相对路径
+                    # 需要将其转换正确的链接
+                    return urlparse(url)._replace(path=r.headers['Location']).geturl()
     return url
 
 def extract_tb_url_from_html(html_content):

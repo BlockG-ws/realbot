@@ -53,9 +53,18 @@ class MessageStatsMiddleware(BaseMiddleware):
                 if not self.stats[chat_id]['users'][user_id]['xm_count']:
                     self.stats[chat_id]['users'][user_id]['xm_count'] = 0
                 self.stats[chat_id]['users'][user_id]['xm_count'] += 1
+            if event.sticker and event.sticker.file_unique_id in ['AQADhhcAAs1rgFVy']:
+                if not self.stats[chat_id]['users'][user_id]['xm_count']:
+                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
+                self.stats[chat_id]['users'][user_id]['xm_count'] += 1
+
             if event.text and '我菜' in event.text:
                 if not self.stats[chat_id]['users'][user_id]['wocai_count']:
                     self.stats[chat_id]['users'][user_id]['xm_count'] = 0
+                self.stats[chat_id]['users'][user_id]['wocai_count'] += 1
+            if event.sticker and event.sticker.file_unique_id in ['AQAD6AUAAgGeUVZy']:
+                if not self.stats[chat_id]['users'][user_id]['wocai_count']:
+                    self.stats[chat_id]['users'][user_id]['wocai_count'] = 0
                 self.stats[chat_id]['users'][user_id]['wocai_count'] += 1
             # 保存统计数据
             self.save_stats()

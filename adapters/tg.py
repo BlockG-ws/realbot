@@ -79,7 +79,6 @@ class TelegramAdapter:
         )
 
         await self.dp.start_polling(bot)
-        print(await bot.get_updates())
 
 
 async def main() -> None:

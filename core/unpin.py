@@ -9,7 +9,6 @@ async def handle_unpin_channel_message(message: Message):
         return
     try:
         regex_pattern = config.get_feature_config('unpin', message.chat.id)['regex']
-        print(regex_pattern)
         # If a regex pattern exists, check if the message matches
         if regex_pattern:
             import re

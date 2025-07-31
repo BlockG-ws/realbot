@@ -39,16 +39,14 @@ def should_remove_param(url, filter_rule):
 
 def extend_short_urls(url):
     """ 扩展短链接 """
-    r = requests.get(url)
+    r = requests.get(url, allow_redirects=False)
     if 'tb.cn' in urlparse(url).hostname:
         # 淘宝短链接特殊处理
         html_content = r.text
         url = extract_tb_url_from_html(html_content)
         if not url:
             return url
-    if r.status_code != 200:
-        return url
-    elif r.status_code in [301,302,304,307,308]:
+    if r.status_code in [301,302,304,307,308] and 'Location' in r.headers:
         return r.headers['Location']
     return url
 
@@ -124,8 +122,8 @@ def reserve_whitelisted_params(url):
             # 重新构建URL
             cleaned_query = urlencode(new_query_params, doseq=True)
             return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
-        # 只保留spm_id_from参数，创建新的query_params
+    elif parsed_url.hostname in ['www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
+        # 不保留任何参数
         new_query_params = {}
         # 重新构建URL
         cleaned_query = urlencode(new_query_params, doseq=True)
@@ -139,6 +137,9 @@ def transform_into_fixed_url(url):
     if parsed_url.hostname in ['x.com', 'twitter.com']:
         # 把 twitter 的链接转换为 fixupx.com
         return urlunparse(parsed_url._replace(netloc='i.fixupx.com'))
+    if parsed_url.hostname in ['bilibili.com', 'm.bilibili.com']:
+        # 把 bilibili 的链接转换为桌面端的 www.bilibili.com
+        return urlunparse(parsed_url._replace(netloc='www.bilibili.com'))
     return url
 
 
@@ -151,13 +152,26 @@ async def handle_links(message: Message):
     # Extract URLs from message text
     if message.text:
         urls = re.findall(url_pattern, message.text)
+        final_urls = []
         for url in urls:
-            # Process each URL with your functions
+            # 首先清理跟踪参数
             cleaned_url = remove_tracking_params(url)
+            # 扩展短链接
             extended_url = extend_short_urls(cleaned_url)
-            only_wl_params_url = reserve_whitelisted_params(extended_url)
-            #untracked_url = remove_tracking_params(only_wl_params_url)
-            # TODO: fix
-            fixed_url = transform_into_fixed_url(only_wl_params_url)
-            # Do something with the processed URL
-            await message.reply(f"清理完成：\n{fixed_url}")
+            # 对于一些网站，只保留白名单中的参数
+            if urlparse(extended_url).hostname in ['item.taobao.com','detail.tmall.com','h5.m.goofish.com','music.163.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
+                final_url = reserve_whitelisted_params(extended_url)
+                if urlparse(extended_url).hostname in ['bilibili.com', 'm.bilibili.com']:
+                    final_url = transform_into_fixed_url(final_url)
+            elif urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
+                # 对于 Twitter 链接，转换为 fixupx.com
+                removed_tracking_url = remove_tracking_params(extended_url)
+                final_url = transform_into_fixed_url(removed_tracking_url)
+            else:
+                # 对于其他链接，直接对其进行跟踪参数清理
+                final_url = remove_tracking_params(extended_url)
+            final_urls.append(final_url)
+
+        # 回复处理后的链接
+        if final_urls:
+            await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦")

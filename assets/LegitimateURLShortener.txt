@@ -5164,3 +5164,5 @@ buffalonews.com##+js(set, lee_trkLinkSrc, noopFunc)
 !#if !ext_ublock
 !#include uBO%20list%20extensions/LegitimateURLShortener%20—%20AdGuardOnlyEntries.txt
 !#endif
+
+$removeparam=utm_from

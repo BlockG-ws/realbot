@@ -30,12 +30,12 @@ async def handle_stats_command(message: Message):
     )
     sorted_most_xm_users = sorted(
         stats['users'].items(),
-        key=lambda x: x[1]['xm_count'],
+        key=lambda x: x[1].get('xm_count',0),
         reverse=True
     )
     sorted_most_wocai_users = sorted(
         stats['users'].items(),
-        key=lambda x: x[1]['wocai_count'],
+        key=lambda x: x[1].get('wocai_count',0),
         reverse=True
     )
 
@@ -48,13 +48,13 @@ async def handle_stats_command(message: Message):
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {user_data['message_count']} 条\n"
-    if sorted_most_xm_users:
-        text += "\n💬 羡慕统计:\n"
+    if sorted_most_xm_users and any(user_data['xm_count'] > 0 for _, user_data in sorted_most_xm_users):
+        text += "\n🍋 羡慕统计:\n"
     for user_id, user_data in sorted_most_xm_users:
         if user_data['xm_count'] > 0:
             name = user_data['name'] or user_data['username'] or str(user_id)
             text += f"{name}: {user_data['xm_count']} 次羡慕\n"
-    if sorted_most_wocai_users:
+    if sorted_most_wocai_users and any(user_data['wocai_count'] > 0 for _, user_data in sorted_most_wocai_users):
         text += "\n🥬 卖菜统计:\n"
     for user_id, user_data in sorted_most_wocai_users:
         if user_data['wocai_count'] > 0:

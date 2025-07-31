@@ -54,7 +54,7 @@ class TelegramAdapter:
         router.message(F.text.startswith('\\'))(handle_reverse_actions)
         router.message(F.text == '我是笨蛋')(handle_baka)
         # link 模块
-        router.message(F.text.regexp(r'https?:\/\/(?:www\.)?([-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b)*(\/[\/\d\w\.-]*)*(?:[\?])*(.+)*'))(handle_links)
+        router.message(F.text.contains('http'))(handle_links)
         # repeater 模块
         router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
 

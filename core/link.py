@@ -165,20 +165,25 @@ async def process_url(url):
     else:
         # 对于其他链接，直接对其进行跟踪参数清理
         final_url = remove_tracking_params(extended_url)
-
-    return final_url
-
+    if url != final_url:
+        return final_url
+    return None
 
 async def handle_links(message: Message):
     if not config.is_feature_enabled('link', message.chat.id):
         return
     # URL regex pattern
     url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-
+    text = message.text or message.caption
     # Extract URLs from message text
-    if message.text:
-        urls = re.findall(url_pattern, message.text)
+    if text:
+        urls = re.findall(url_pattern, text)
+        if not urls:
+            return
         final_urls = await asyncio.gather(*[process_url(url) for url in urls])
+
+        # Filter out None values
+        final_urls = [url for url in final_urls if url is not None]
 
         # 回复处理后的链接
         if final_urls:

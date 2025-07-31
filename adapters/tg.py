@@ -12,6 +12,7 @@ from aiogram import F
 
 from core.bitflip import handle_bitflip_command
 from core.link import handle_links
+from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command
 from core.actions import handle_actions, handle_reverse_actions
@@ -39,6 +40,8 @@ class TelegramAdapter:
         router.message(Command('info'))(handle_info_command)
         # bitflip 模块
         router.message(Command('bitflip'))(handle_bitflip_command)
+        # promote 模块
+        router.message(Command('t'))(handle_promote_command)
         # stats 模块
         router.message(Command('stats'))(handle_stats_command)
         # unpin 模块

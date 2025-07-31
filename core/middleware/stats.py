@@ -28,10 +28,19 @@ class MessageStatsMiddleware(BaseMiddleware):
                 }
 
             if user_id not in self.stats[chat_id]['users']:
+                name = 'Unknown'
+                if event.sender_chat:
+                    if event.sender_chat.type in ['group','supergroup']:
+                        # 如果是频道/群组匿名管理员消息，使用频道名称
+                        name = f"{event.sender_chat.title} [admin]"
+                    # 如果是频道/群组匿名管理员消息，使用频道名称
+                    name = f"{event.sender_chat.title} [channel]"
+                elif event.from_user:
+                    name = event.from_user.full_name
                 self.stats[chat_id]['users'][user_id] = {
                     'message_count': 0,
                     'username': event.from_user.username if event.from_user else 'Unknown',
-                    'first_name': event.from_user.first_name if event.from_user else 'Unknown'
+                    'name': name
                 }
 
             # 更新统计

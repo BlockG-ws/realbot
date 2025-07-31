@@ -18,8 +18,6 @@ async def handle_stats_command(message: Message):
     except (FileNotFoundError, json.JSONDecodeError):
         stats = {}.get(chat_id)
 
-    print(stats)
-
     if not stats:
         await message.reply("暂无统计数据")
         return
@@ -38,7 +36,7 @@ async def handle_stats_command(message: Message):
     text += "🏆 发言排行榜:\n"
 
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
-        name = user_data['first_name'] or user_data['username'] or str(user_id)
+        name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {user_data['message_count']} 条\n"
 
     await message.reply(text)

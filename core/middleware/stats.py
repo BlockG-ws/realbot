@@ -39,6 +39,8 @@ class MessageStatsMiddleware(BaseMiddleware):
                     name = event.from_user.full_name
                 self.stats[chat_id]['users'][user_id] = {
                     'message_count': 0,
+                    'xm_count': 0,
+                    'wocai_count': 0,
                     'username': event.from_user.username if event.from_user else 'Unknown',
                     'name': name
                 }
@@ -46,6 +48,16 @@ class MessageStatsMiddleware(BaseMiddleware):
             # 更新统计
             self.stats[chat_id]['total_messages'] += 1
             self.stats[chat_id]['users'][user_id]['message_count'] += 1
+            # 羡慕、我菜统计
+            if event.text and any(keyword in event.text.lower() for keyword in ['xm','xmsl','羡慕','羡慕死了']):
+                if not self.stats[chat_id]['users'][user_id]['xm_count']:
+                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
+                self.stats[chat_id]['users'][user_id]['xm_count'] += 1
+            if event.text and '我菜' in event.text:
+                if not self.stats[chat_id]['users'][user_id]['wocai_count']:
+                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
+                self.stats[chat_id]['users'][user_id]['wocai_count'] += 1
+            # 保存统计数据
             self.save_stats()
 
         return await handler(event, data)

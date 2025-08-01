@@ -10,6 +10,9 @@ features:
   # 启用 1/0 翻转
   bitflip:
     enable: true
+  # 启用转发到联邦宇宙
+  fedi:
+    enable: true
   # 启用链接解析/清理
   link:
     enable: true

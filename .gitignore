@@ -1,4 +1,5 @@
 .idea/
 .venv/
+secrets/
 message_stats.json
 config.yaml

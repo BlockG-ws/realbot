@@ -10,8 +10,11 @@ from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
+from core.post_to_fedi import router as fedi_router
+
 from core.bitflip import handle_bitflip_command
 from core.link import handle_links
+from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command
@@ -44,6 +47,9 @@ class TelegramAdapter:
         router.message(Command('t'))(handle_promote_command)
         # stats 模块
         router.message(Command('stats'))(handle_stats_command)
+        # fedi 模块
+        router.message(Command('fauth'))(handle_auth)
+        router.message(Command('post'))(handle_post_to_fedi)
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
         router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
@@ -63,6 +69,8 @@ class TelegramAdapter:
 
         # Include router in dispatcher
         self.dp.include_router(router)
+        # 处理联邦宇宙认证相关
+        self.dp.include_router(fedi_router)
 
     def _setup_middleware(self):
         """注册中间件"""

@@ -6,6 +6,8 @@ from config import config
 async def handle_actions(message: Message) -> None:
     if not config.is_feature_enabled('actions', message.chat.id):
         return
+    if not message.chat.type in ['group', 'supergroup']:
+        return
     rawtext = message.text
     from_user = message.from_user.mention_html(message.sender_chat.title) if message.sender_chat else message.from_user.mention_html()
     replied_user = message.reply_to_message.from_user.mention_html(message.reply_to_message.sender_chat.title) if message.reply_to_message and message.reply_to_message.sender_chat else message.reply_to_message.from_user.mention_html()

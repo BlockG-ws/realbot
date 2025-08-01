@@ -16,11 +16,14 @@ class MessageRepeater:
     async def handle_message(self, message: aiogram.types.Message):
         """Handle incoming messages and repeat when a threshold is met"""
         chat_id = message.chat.id
-        content = ''
         if message.text:
             content = message.text
         elif message.sticker:
             content = message.sticker.file_id
+        elif message.photo:
+            content = message.photo[0].file_id
+        else:
+            return
 
         if not config.is_feature_enabled('repeater', message.chat.id):
             return

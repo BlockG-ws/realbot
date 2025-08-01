@@ -1,6 +1,12 @@
 # 管理员对应的 Telegram 用户 ID
 # 你可以通过 /info 命令获取你的用户 ID
 admin: 123456789
+# 开发者对应的 Telegram 用户 ID
+# 如果你希望 fork 这个项目并进行开发，你可以在这里更改成你的用户 ID，用户不推荐更改这部分
+# 这部分仅限于汇报链接跟踪参数去除的问题
+dev: 616760897
+
+
 
 # global features settings
 features:

@@ -23,6 +23,10 @@ class Config:
         """Get admin user ID"""
         return self.config_data.get('admin')
 
+    def get_developer_id(self) -> Optional[int]:
+        """Get developer user ID"""
+        return self.config_data.get('dev')
+
     def is_feature_enabled(self, feature_name: str, chat_id: Optional[int] = None) -> bool:
         """
         Check if a feature is enabled for a specific chat or globally

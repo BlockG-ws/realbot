@@ -1,5 +1,4 @@
 import aiohttp
-import requests
 import re
 import html
 import asyncio
@@ -44,7 +43,6 @@ async def extend_short_urls(url):
     """ 扩展短链接 """
     async with aiohttp.ClientSession() as session:
         async with session.get(url,allow_redirects=False) as r:
-
             if 'tb.cn' in urlparse(url).hostname:
                 # 淘宝短链接特殊处理
                 html_content = await r.text()
@@ -52,7 +50,7 @@ async def extend_short_urls(url):
                 if not url:
                     return url
             if r.status in [301, 302, 304, 307, 308] and 'Location' in r.headers:
-                if 'http' in r.headers['Location']:
+                if r.headers['Location'].startswith(('http://', 'https://')):
                     return r.headers['Location']
                 else:
                     # 如果 Location 头部没有 http 前缀，可能是相对路径
@@ -131,7 +129,7 @@ def reserve_whitelisted_params(url):
             # 重新构建URL
             cleaned_query = urlencode(new_query_params, doseq=True)
             return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
+    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
         # 不保留任何参数
         new_query_params = {}
         # 重新构建URL
@@ -149,21 +147,33 @@ def transform_into_fixed_url(url):
     if parsed_url.hostname in ['bilibili.com', 'm.bilibili.com']:
         # 把 bilibili 的链接转换为桌面端的 www.bilibili.com
         return urlunparse(parsed_url._replace(netloc='www.bilibili.com'))
+    if parsed_url.hostname in ['www.iesdouyin.com']:
+        # 把抖音分享链接转换为正常的 www.douyin.com
+        return urlunparse(parsed_url._replace(netloc='www.douyin.com'))
     return url
 
 async def process_url(url):
-    # 首先清理跟踪参数
+    # 对于适配的网站，直接保留白名单参数并返回
+    if urlparse(url).hostname in ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
+                                           'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
+                                           'space.bilibili.com', 'live.bilibili.com']:
+        final_url = reserve_whitelisted_params(url)
+        if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
+            final_url = transform_into_fixed_url(final_url)
+        return final_url
+    # 对于其它的网站，首先清理跟踪参数
     cleaned_url = remove_tracking_params(url)
     # 扩展短链接
     extended_url = await extend_short_urls(cleaned_url)
-    # 对于一些网站，只保留白名单中的参数
-    if urlparse(extended_url).hostname in ['item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
+    # 对于扩展短链接之后的适配的网站，直接保留白名单参数并返回
+    if urlparse(extended_url).hostname in ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com']:
         final_url = reserve_whitelisted_params(extended_url)
-        if urlparse(extended_url).hostname in ['bilibili.com', 'm.bilibili.com']:
+        if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
             final_url = transform_into_fixed_url(final_url)
-    elif urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
+        return final_url
+    if urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
         # 对于 Twitter 链接，转换为 fixupx.com
         removed_tracking_url = remove_tracking_params(extended_url)
         final_url = transform_into_fixed_url(removed_tracking_url)
@@ -192,4 +202,6 @@ async def handle_links(message: Message):
 
         # 回复处理后的链接
         if final_urls:
-            await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦")
+            await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："
+                                f"这个功能是试验性的，可能会出现链接无法访问等问题，如果出现链接没有清理干净的情况，"
+                                f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎把它通过 `/report_broken_links 链接` 报告给开发者！")

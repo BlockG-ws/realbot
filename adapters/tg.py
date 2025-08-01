@@ -17,6 +17,7 @@ from core.link import handle_links
 from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
+from core.report_links import report_broken_links
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command
 from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
@@ -55,15 +56,15 @@ class TelegramAdapter:
         router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
                     F.sender_chat.type == 'channel') & F.is_automatic_forward)(
             handle_unpin_channel_message)
+        # link 模块
+        router.message(Command('report_broken_links'))(report_broken_links)
+        router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
+        # repeater 模块
+        router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         # actions 模块
         router.message(F.text.startswith('/'))(handle_actions)
         router.message(F.text.startswith('\\'))(handle_reverse_actions)
         router.message(F.text == '我是笨蛋')(handle_baka)
-        # link 模块
-        router.message(F.text.contains('http'))(handle_links)
-        # repeater 模块
-        router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
-
         # 捕获所有其他消息
         router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)
 

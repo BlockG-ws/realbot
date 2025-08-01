@@ -24,7 +24,7 @@ async def report_broken_links(message: Message):
     # 处理报告逻辑（例如，保存到数据库或发送给开发者）
     report_content = f"用户 {message.from_user.full_name} ({message.from_user.id}) 报告了以下链接的问题：\n"
     report_content += "\n".join(links) + "\n"
-    report_content += f"描述：{text.split(' ')[2] if ' ' in text else text}\n"
+    report_content += f"描述：{' '.join(text.split(' ')[2:]) if ' ' in text and len(text.split(' ')) >= 3 else ''.join(text.split(' ')[1:])}\n"
 
     # 将 report_content 发送到开发者
     developer_id = config.get_developer_id()  # 从配置获取开发者ID

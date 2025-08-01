@@ -204,4 +204,4 @@ async def handle_links(message: Message):
         if final_urls:
             await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："
                                 f"这个功能是试验性的，可能会出现链接无法访问等问题，如果出现链接没有清理干净的情况，"
-                                f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎把它通过 `/report_broken_links 链接` 报告给开发者！")
+                                f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果我没有回复链接，说明链接不需要被清理\n如果你找到了这个工具的问题，欢迎把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")

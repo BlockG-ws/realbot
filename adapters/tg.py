@@ -38,6 +38,9 @@ class TelegramAdapter:
         """Register handlers with core module functions"""
         # Create router
         router = Router()
+        actions_router = Router()
+        repeat_router = Router()
+        dummy_router = Router()
 
         # Register handlers on router
         router.message(CommandStart())(handle_start_command)
@@ -51,27 +54,31 @@ class TelegramAdapter:
         # fedi 模块
         router.message(Command('fauth'))(handle_auth)
         router.message(Command('post'))(handle_post_to_fedi)
+        # link 模块
+        router.message(Command('report_broken_links'))(report_broken_links)
+        router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
         router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
                     F.sender_chat.type == 'channel') & F.is_automatic_forward)(
             handle_unpin_channel_message)
-        # link 模块
-        router.message(Command('report_broken_links'))(report_broken_links)
-        router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
         # repeater 模块
-        router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
-        # actions 模块
-        router.message(F.text.startswith('/'))(handle_actions)
-        router.message(F.text.startswith('\\'))(handle_reverse_actions)
+        repeat_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text == '我是笨蛋')(handle_baka)
         # 捕获所有其他消息
-        router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)
+        dummy_router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)
+
+        # actions 模块
+        actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('/'))(handle_actions)
+        actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('\\'))(handle_reverse_actions)
 
         # Include router in dispatcher
+        # 通用的路由
         self.dp.include_router(router)
+        self.dp.include_router(actions_router)
         # 处理联邦宇宙认证相关
         self.dp.include_router(fedi_router)
+        self.dp.include_router(dummy_router)
 
     def _setup_middleware(self):
         """注册中间件"""

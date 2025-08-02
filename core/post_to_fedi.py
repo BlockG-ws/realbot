@@ -34,7 +34,8 @@ def check_user_cred_exists(instance: str, userid: int) -> bool:
 async def handle_token(instance,mastodon, message: Message):
     mastodon.log_in(
         code=message.text,
-        to_file=f"secrets/realbot_{instance}_{message.from_user.id}_usercred.secret"
+        to_file=f"secrets/realbot_{instance}_{message.from_user.id}_usercred.secret",
+        scopes=['read:accounts', 'read:statuses', 'write:media', 'write:statuses']
     )
 
 async def handle_auth(message: Message, state: FSMContext):

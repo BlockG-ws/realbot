@@ -39,7 +39,7 @@ class TelegramAdapter:
         # Create router
         router = Router()
         actions_router = Router()
-        repeat_router = Router()
+        repeater_router = Router()
         dummy_router = Router()
 
         # Register handlers on router
@@ -63,7 +63,7 @@ class TelegramAdapter:
                     F.sender_chat.type == 'channel') & F.is_automatic_forward)(
             handle_unpin_channel_message)
         # repeater 模块
-        repeat_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
+        repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text == '我是笨蛋')(handle_baka)
         # 捕获所有其他消息
         dummy_router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)
@@ -78,6 +78,7 @@ class TelegramAdapter:
         self.dp.include_router(actions_router)
         # 处理联邦宇宙认证相关
         self.dp.include_router(fedi_router)
+        self.dp.include_router(repeater_router)
         self.dp.include_router(dummy_router)
 
     def _setup_middleware(self):

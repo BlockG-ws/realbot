@@ -62,9 +62,12 @@ async def handle_about_command(message: Message) -> None:
     import time
     bot_time_start = time.time()
     about_message = await message.reply('Loading...')
-    from dulwich.repo import Repo
-    git_commit_hash = Repo('.').head().decode('utf-8')[:7]  # Get the first 7 characters of the commit hash
-    response = f"realbot@g{git_commit_hash}\n\n"
+    try:
+        from dulwich.repo import Repo
+        git_commit_hash = f"g{Repo('.').head().decode('utf-8')[:7]}"  # Get the first 7 characters of the commit hash
+    except Exception:
+        git_commit_hash = 'v20250802'  # Fallback when git operations fail
+    response = f"realbot@{git_commit_hash}\n\n"
     response += "孩子不懂随便写的 bot\n"
     if message.chat.id == config.config.get_admin_id():
         response += '\nDebug Info:\n'

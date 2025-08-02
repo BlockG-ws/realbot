@@ -9,6 +9,9 @@ from aiogram.types import Message
 
 from config import config
 
+whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
+                                           'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
+                                           'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']
 
 def matches_adb_selector(url, selector):
     """Check if URL matches the given selector"""
@@ -56,6 +59,16 @@ async def extend_short_urls(url):
                     # 如果 Location 头部没有 http 前缀，可能是相对路径
                     # 需要将其转换正确的链接
                     return urlparse(url)._replace(path=r.headers['Location']).geturl()
+            elif not r.status in [200,403,404,502,503]:
+                # 对于一些需要“正常”浏览器才能访问的链接，尝试修复
+                async with session.get(url, allow_redirects=False, headers={'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.48 Safari/537.36'}) as r_fix:
+                    if r_fix.status in [301, 302, 304, 307, 308] and 'Location' in r_fix.headers:
+                        if r_fix.headers['Location'].startswith(('http://', 'https://')):
+                            return r_fix.headers['Location']
+                        else:
+                            # 如果 Location 头部没有 http 前缀，可能是相对路径
+                            # 需要将其转换正确的链接
+                            return urlparse(url)._replace(path=r_fix.headers['Location']).geturl()
     return url
 
 def extract_tb_url_from_html(html_content):
@@ -129,10 +142,25 @@ def reserve_whitelisted_params(url):
             # 重新构建URL
             cleaned_query = urlencode(new_query_params, doseq=True)
             return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com']:
+        if 'music.163.com' in parsed_url.hostname and 'id' not in query_params:
+            # 如果网易云链接没有id参数，不保留任何参数
+            # 例如 https://music.163.com/song/12345678
+            new_query_params = {}
+            cleaned_query = urlencode(new_query_params, doseq=True)
+            return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']:
         # 不保留任何参数
         new_query_params = {}
+        if 'xiaohongshu.com' in parsed_url.hostname and 'xsec_token' in query_params:
+            # 为了保证能正常访问，小红书链接保留 xsec_token 参数
+            # 我是不是也应该 f**k 小红书一下
+            new_query_params = {'xsec_token': query_params['xsec_token']}
         # 重新构建URL
+        cleaned_query = urlencode(new_query_params, doseq=True)
+        return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif parsed_url.hostname in ['chatglm.cn'] and query_params:
+        # 就你叫智谱啊
+        new_query_params = {'share_conversation_id': query_params['share_conversation_id']}
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
     return url
@@ -154,9 +182,7 @@ def transform_into_fixed_url(url):
 
 async def process_url(url):
     # 对于适配的网站，直接保留白名单参数并返回
-    if urlparse(url).hostname in ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
-                                           'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
-                                           'space.bilibili.com', 'live.bilibili.com']:
+    if urlparse(url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(url)
         if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
             final_url = transform_into_fixed_url(final_url)
@@ -165,10 +191,11 @@ async def process_url(url):
     cleaned_url = remove_tracking_params(url)
     # 扩展短链接
     extended_url = await extend_short_urls(cleaned_url)
+    if urlparse(extended_url).hostname in ['chatglm.cn']:
+        final_url = reserve_whitelisted_params(extended_url)
+        return final_url
     # 对于扩展短链接之后的适配的网站，直接保留白名单参数并返回
-    if urlparse(extended_url).hostname in ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
-                                           'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
-                                           'space.bilibili.com', 'live.bilibili.com']:
+    if urlparse(extended_url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(extended_url)
         if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
             final_url = transform_into_fixed_url(final_url)
@@ -204,4 +231,5 @@ async def handle_links(message: Message):
         if final_urls:
             await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："
                                 f"这个功能是试验性的，可能会出现链接无法访问等问题，如果出现链接没有清理干净的情况，"
-                                f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果我没有回复链接，说明链接不需要被清理\n如果你找到了这个工具的问题，欢迎把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")
+                                f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎"
+                                f"把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")

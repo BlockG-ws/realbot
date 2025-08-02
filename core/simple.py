@@ -3,6 +3,8 @@ import asyncio
 from aiogram import html
 from aiogram.types import Message
 
+import config
+
 
 async def handle_start_command(message: Message) -> None:
     """Handle /start command"""
@@ -54,6 +56,33 @@ async def handle_tips_command(message: Message) -> None:
     # Delete the message after 1 minute
     await asyncio.sleep(60)
     await tips_message.delete()
+
+async def handle_about_command(message: Message) -> None:
+    """Handle /about command"""
+    import time
+    bot_time_start = time.time()
+    about_message = await message.reply('Loading...')
+    from dulwich.repo import Repo
+    git_commit_hash = Repo('.').head().decode('utf-8')[:7]  # Get the first 7 characters of the commit hash
+    response = f"realbot@g{git_commit_hash}\n\n"
+    response += "孩子不懂随便写的 bot\n"
+    if message.chat.id == config.config.get_admin_id():
+        response += '\nDebug Info:\n'
+        import os
+        response += 'Python Version: ' + str(os.sys.version) + '\n'
+        response += 'System Info: ' + '\n' + ' '.join(str(x) for x in os.uname()) + '\n'
+    response += '\n这个命令比较慢，dulwich 负全责（小声），'
+    bot_time_end = time.time()
+    time_diff = bot_time_end - bot_time_start
+    if time_diff < 1:
+        response += f"也就大概花了 {round(time_diff * 1000, 2)} ms..."
+    elif time_diff < 60:
+        response += f"也就大概花了 {round(time_diff, 2)} 秒..."
+    else:
+        minutes = int(time_diff // 60)
+        seconds = round(time_diff % 60, 2)
+        response += f"也就大概花了 {minutes} 分 {seconds} 秒..."
+    await about_message.edit_text(response)
 
 async def dummy_handler(message: Message) -> None:
     """A handler to catch all other messages"""

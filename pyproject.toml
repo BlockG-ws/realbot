@@ -6,6 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiodns==3.5.0",
     "aiogram==3.21.0",
+    "dulwich==0.24.1",
     "mastodon-py==2.0.1",
     "matrix-nio==0.25.2",
     "python-abp==0.2.0",

@@ -10,6 +10,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
+from core.middleware.rikki import RikkiMiddleware
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
@@ -32,6 +33,7 @@ class TelegramAdapter:
     def __init__(self):
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
+        self.hit_middleware = RikkiMiddleware()
         self._setup_middleware()
         self._setup_handlers()
 
@@ -41,6 +43,7 @@ class TelegramAdapter:
         router = Router()
         actions_router = Router()
         repeater_router = Router()
+        unpin_router = Router()
         dummy_router = Router()
 
         # Register handlers on router
@@ -63,7 +66,7 @@ class TelegramAdapter:
         router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
-        router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
+        unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
                     F.sender_chat.type == 'channel') & F.is_automatic_forward)(
             handle_unpin_channel_message)
         # repeater 模块
@@ -77,6 +80,7 @@ class TelegramAdapter:
         actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('\\'))(handle_reverse_actions)
 
         # Include router in dispatcher
+        self.dp.include_router(unpin_router)
         # 通用的路由
         self.dp.include_router(router)
         self.dp.include_router(actions_router)
@@ -88,7 +92,7 @@ class TelegramAdapter:
     def _setup_middleware(self):
         """注册中间件"""
         self.dp.message.middleware(self.stats_middleware)
-
+        self.dp.message.middleware(self.hit_middleware)
 
     async def start(self):
         """Start the Telegram bot"""

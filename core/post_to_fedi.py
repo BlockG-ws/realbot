@@ -50,7 +50,7 @@ async def instance_is_misskey(instance: str) -> bool:
     """
     try:
         async with aiohttp.ClientSession() as client:
-            async with client.post(f"https://{instance}/api/v1/instance", headers={"Content-Type": "application/json"},
+            async with client.get(f"https://{instance}/api/v1/instance", headers={"Content-Type": "application/json"},
                                    allow_redirects=False) as r:
                 if r.status != 200:
                     return True

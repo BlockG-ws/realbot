@@ -1,8 +1,10 @@
+import logging
 import random
-from aiogram import BaseMiddleware
+from aiogram import BaseMiddleware, Router
 from aiogram.types import Message
 from typing import Dict, Optional, Callable, Awaitable, Any
 
+router = Router()
 
 class RikkiMiddleware(BaseMiddleware):
     def __init__(self, target_user_id: str = "5545347637"):
@@ -71,10 +73,11 @@ class RikkiMiddleware(BaseMiddleware):
         if event.chat.type in ['group', 'supergroup'] and user_id == self.target_user_id:
             # 更新几率
             self.update_probability(user_id, event.text)
+            logging.debug("当前欠打的几率是{}".format(self.get_user_probability(user_id)))
 
         if event.text and event.text.startswith('/打') and event.reply_to_message and str(event.reply_to_message.from_user.id) == self.target_user_id:
             self.update_probability(user_id, event.text, hit_by_others=True)
-
+            logging.debug("当前欠打的几率是{}".format(self.get_user_probability(user_id)))
         if self.get_user_probability(user_id) >= 80.0:
             await event.reply("泥欠打了")
 

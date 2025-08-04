@@ -1,3 +1,5 @@
+import logging
+
 import aiohttp
 import re
 import html
@@ -181,6 +183,7 @@ def transform_into_fixed_url(url):
     return url
 
 async def process_url(url):
+    logging.debug('发现链接，正在尝试清理')
     # 对于适配的网站，直接保留白名单参数并返回
     if urlparse(url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(url)
@@ -233,3 +236,7 @@ async def handle_links(message: Message):
                                 f"这个功能是试验性的，可能会出现链接无法访问等问题，如果出现链接没有清理干净的情况，"
                                 f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎"
                                 f"把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")
+        else:
+            no_link_message = await message.reply("我没有发现可以处理的链接。\n此消息将会在 5 秒后被删除。", disable_web_page_preview=True)
+            await asyncio.sleep(5)
+            await no_link_message.delete()

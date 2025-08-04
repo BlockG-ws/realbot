@@ -1,3 +1,5 @@
+import logging
+import os
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -10,6 +12,12 @@ router = Router()
 
 class AuthStates(StatesGroup):
     waiting_for_token = State()
+
+def check_secrets_folder_exists() -> bool:
+    """
+    检查 secrets 文件夹是否存在
+    """
+    return os.path.exists('secrets') and os.path.isdir('secrets')
 
 def check_client_cred_exists(instance: str) -> bool:
     """
@@ -52,13 +60,20 @@ async def handle_auth(message: Message, state: FSMContext):
         await message.reply('请输入实例域名，例如：`example.com`')
         return
     if not check_client_cred_exists(instance):
-        Mastodon.create_app(
-            'realbot',
-            api_base_url='https://{}'.format(instance),
-            to_file='secrets/realbot_{}_clientcred.secret'.format(instance),
-            scopes=['read:accounts', 'read:statuses','write:media','write:statuses']
-        )
-    mastodon = Mastodon(client_id=f'secrets/realbot_{instance}_clientcred.secret', )
+        try:
+            if not check_secrets_folder_exists():
+                os.mkdir('secrets')
+            Mastodon.create_app(
+                'realbot',
+                api_base_url='https://{}'.format(instance),
+                to_file='secrets/realbot_{}_clientcred.secret'.format(instance),
+                scopes=['read:accounts', 'read:statuses','write:media','write:statuses']
+            )
+        except Exception as e:
+            logging.warning(e)
+            await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Mastodon API。')
+            return
+    mastodon = Mastodon(client_id=f'secrets/realbot_{instance}_clientcred.secret')
     auth_url = mastodon.auth_request_url()
     await message.reply('请在浏览器中打开链接进行身份验证：\n{}\n验证完成后，请用得到的 token 回复这条消息'.format(auth_url))
     # 在发送消息后设置状态
@@ -90,7 +105,6 @@ async def handle_post_to_fedi(message: Message):
     user_id = message.from_user.id
 
     # 查找用户绑定的实例
-    import os
     import glob
 
     user_cred_pattern = f'secrets/realbot_*_{user_id}_usercred.secret'

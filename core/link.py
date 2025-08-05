@@ -15,6 +15,8 @@ whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.co
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']
 
+has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com']
+
 def matches_adb_selector(url, selector):
     """Check if URL matches the given selector"""
     if selector['type'] == 'url-pattern':
@@ -184,12 +186,16 @@ def transform_into_fixed_url(url):
 
 async def process_url(url):
     logging.debug('发现链接，正在尝试清理')
+    if urlparse(url).hostname in has_self_redirection_links and not urlparse(url).params:
+        # 对于有自我纠正的重定向而且不携带任何跟踪参数的链接，直接返回
+        return None
     # 对于适配的网站，直接保留白名单参数并返回
     if urlparse(url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(url)
         if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
             final_url = transform_into_fixed_url(final_url)
-        return final_url
+        if url != final_url:
+            return final_url
     # 对于其它的网站，首先清理跟踪参数
     cleaned_url = remove_tracking_params(url)
     # 扩展短链接
@@ -233,10 +239,6 @@ async def handle_links(message: Message):
         # 回复处理后的链接
         if final_urls:
             await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："
-                                f"这个功能是试验性的，可能会出现链接无法访问等问题，如果出现链接没有清理干净的情况，"
+                                f"这个功能是试验性的，可能会出现链接无法访问等问题。"
                                 f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎"
                                 f"把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")
-        else:
-            no_link_message = await message.reply("我没有发现可以处理的链接。\n此消息将会在 5 秒后被删除。", disable_web_page_preview=True)
-            await asyncio.sleep(5)
-            await no_link_message.delete()

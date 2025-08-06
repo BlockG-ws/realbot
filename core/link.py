@@ -15,7 +15,7 @@ whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.co
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']
 
-has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com']
+has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
 def matches_adb_selector(url, selector):
     """Check if URL matches the given selector"""
@@ -187,7 +187,7 @@ def transform_into_fixed_url(url):
 async def process_url(url):
     logging.debug('发现链接，正在尝试清理')
     if urlparse(url).hostname in has_self_redirection_links and not urlparse(url).params:
-        # 对于有自我纠正的重定向而且不携带任何跟踪参数的链接，直接返回
+        # 对于有自我纠正的重定向而且不携带任何参数的链接，直接返回
         return None
     # 对于适配的网站，直接保留白名单参数并返回
     if urlparse(url).hostname in whitelist_param_links:
@@ -202,13 +202,15 @@ async def process_url(url):
     extended_url = await extend_short_urls(cleaned_url)
     if urlparse(extended_url).hostname in ['chatglm.cn']:
         final_url = reserve_whitelisted_params(extended_url)
-        return final_url
+        if url != final_url:
+            return final_url
     # 对于扩展短链接之后的适配的网站，直接保留白名单参数并返回
     if urlparse(extended_url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(extended_url)
         if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
             final_url = transform_into_fixed_url(final_url)
-        return final_url
+        if url != final_url:
+            return final_url
     if urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
         # 对于 Twitter 链接，转换为 fixupx.com
         removed_tracking_url = remove_tracking_params(extended_url)
@@ -232,10 +234,8 @@ async def handle_links(message: Message):
         if not urls:
             return
         final_urls = await asyncio.gather(*[process_url(url) for url in urls])
-
         # Filter out None values
         final_urls = [url for url in final_urls if url is not None]
-
         # 回复处理后的链接
         if final_urls:
             await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："

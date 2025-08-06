@@ -25,6 +25,7 @@ from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
 from core.middleware.stats import MessageStatsMiddleware
 from core.unpin import handle_unpin_channel_message
+from core.rikki_hit import handle_query_hit_command
 
 TOKEN = getenv("BOT_TOKEN")
 
@@ -52,6 +53,7 @@ class TelegramAdapter:
         router.message(Command('about'))(handle_about_command)
         router.message(Command('ping'))(handle_ping_command)
         router.message(Command('tips'))(handle_tips_command)
+        router.message(Command('query_hit'))(handle_query_hit_command)
         # bitflip 模块
         router.message(Command('bitflip'))(handle_bitflip_command)
         # promote 模块

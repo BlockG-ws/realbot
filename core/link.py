@@ -129,6 +129,11 @@ def remove_tracking_params(url):
 
                     for param in params_to_remove:
                         query_params.pop(param, None)
+    # Remove UTM parameters
+    utm_params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
+    for param in utm_params:
+        if param in query_params:
+            query_params.pop(param, None)
 
     # Reconstruct URL
     new_query = urlencode(query_params, doseq=True)
@@ -155,6 +160,12 @@ def reserve_whitelisted_params(url):
     elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']:
         # 不保留任何参数
         new_query_params = {}
+        if 'bilibili.com' in parsed_url.hostname and 'video' in parsed_url.path and query_params:
+            # 对于 bilibili 的视频链接，保留一些必要的参数
+            if 't' in query_params:
+                new_query_params['t'] = query_params['t']
+            if 'p' in query_params:
+                new_query_params['p'] = query_params['p']
         if 'xiaohongshu.com' in parsed_url.hostname and 'xsec_token' in query_params:
             # 为了保证能正常访问，小红书链接保留 xsec_token 参数
             # 我是不是也应该 f**k 小红书一下
@@ -186,7 +197,7 @@ def transform_into_fixed_url(url):
 
 async def process_url(url):
     logging.debug('发现链接，正在尝试清理')
-    if urlparse(url).hostname in has_self_redirection_links and not urlparse(url).params:
+    if urlparse(url).hostname in has_self_redirection_links and not urlparse(url).query:
         # 对于有自我纠正的重定向而且不携带任何参数的链接，直接返回
         return None
     # 对于适配的网站，直接保留白名单参数并返回
@@ -238,7 +249,7 @@ async def handle_links(message: Message):
         final_urls = [url for url in final_urls if url is not None]
         # 回复处理后的链接
         if final_urls:
-            await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n注意："
-                                f"这个功能是试验性的，可能会出现链接无法访问等问题。"
+            await message.reply(f"{"\n".join(final_urls)}\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n"
+                                f"这个功能是试验性的，可能会出现问题，"
                                 f"可以将返回的结果再次发送给bot，或者尝试手动清理。\n如果你找到了这个工具的问题，欢迎"
                                 f"把它通过 `/report_broken_links 链接 需要去除的参数等等` 报告给开发者！")

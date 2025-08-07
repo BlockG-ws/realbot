@@ -10,6 +10,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
+from core.mc import handle_mc_status_command
 from core.middleware.rikki import RikkiMiddleware
 from core.post_to_fedi import router as fedi_router
 
@@ -66,6 +67,8 @@ class TelegramAdapter:
         # link 模块
         router.message(Command('report_broken_links'))(report_broken_links)
         router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
+        # mc 模块
+        router.message(Command('mc'))(handle_mc_status_command)  # 这个模块
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
         unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (

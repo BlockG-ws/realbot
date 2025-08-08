@@ -22,6 +22,8 @@ async def handle_stats_command(message: Message):
         await message.reply("暂无统计数据")
         return
 
+    stats_message = await message.reply("正在生成统计信息...")
+
     # 按消息数量排序用户
     sorted_users = sorted(
         stats['users'].items(),
@@ -80,4 +82,4 @@ async def handle_stats_command(message: Message):
                 text += f"{name}: {user_data['wocai_count']} 次卖菜\n"
         text += "</blockquote>\n"
 
-    await message.reply(text)
+    await stats_message.edit_text(text)

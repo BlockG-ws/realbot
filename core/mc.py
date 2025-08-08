@@ -9,6 +9,7 @@ async def handle_mc_status_command(message: Message):
     args = message.text.replace('/mc', '').strip().split(' ')
     server_type = args[0] if args else 'java'
     server_address = args[1] if len(args) >= 2 else None
+    query_enabled = True if len(args) >= 3 and args[2] == 'query' else False
     if not args:
         await message.reply("Usage: /mc <java/bedrock> <server_address>\n"
                             "Example: /mc java play.example.com")
@@ -32,12 +33,14 @@ async def handle_mc_status_command(message: Message):
             server = JavaServer.lookup(server_address)
             status = server.status()
             query = None
+            s_message = f"这个 Java 服务器"
             # 尝试查询服务器信息
-            try:
-                query = server.query()
-            except Exception as e:
-                logging.warning('查询 Minecraft 服务器遇到了错误',e)
-            s_message = f"*我未能成功发送 query 请求，显示的结果可能有出入。*\n这个 Java 服务器"
+            if query_enabled:
+                try:
+                    query = server.query()
+                except Exception as e:
+                    s_message = f"_我未能成功发送 query 请求，可能是因为服务器未开放对应端口。_\n这个 Java 服务器"
+                    logging.warning('查询 Minecraft 服务器遇到了错误',e)
             if query:
                 s_message = f"这个 Java 服务器使用了 {query.software.brand}({query.software.version})，"
             s_message += f"有{status.players.online}(/{status.players.max}) 人在线\n"

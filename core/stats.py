@@ -28,6 +28,11 @@ async def handle_stats_command(message: Message):
         key=lambda x: x[1]['message_count'],
         reverse=True
     )
+    sorted_24h_users = sorted(
+        [(user_id, stats['users'][user_id]) for user_id in stats.get('messages_24h', {}).get('active_users', [])],
+        key=lambda x: x[1]['message_count'],
+        reverse=True
+    )
     sorted_most_xm_users = sorted(
         stats['users'].items(),
         key=lambda x: x[1].get('xm_count',0),
@@ -39,15 +44,24 @@ async def handle_stats_command(message: Message):
         reverse=True
     )
 
+
     # 构建统计消息
     text = f"📊 群组统计\n\n"
     text += f"总消息数: {stats['total_messages']}\n"
-    text += f"活跃用户数: {len(stats['users'])}\n\n"
+    text += f"24小时内消息数: {stats['messages_24h']['message_count']}\n"
+    text += f"活跃用户数: {len(stats['users'])}\n"
+    text += f"24小时内活跃用户数:{len(stats['messages_24h']['active_users'])}\n\n"
     text += "🏆 发言排行榜:\n"
     text += "<blockquote expandable>"
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {user_data['message_count']} 条\n"
+    text += "</blockquote>\n"
+    text += "📈 24小时内发言排行榜:\n"
+    text += "<blockquote expandable>"
+    for i, (user_id, user_data) in enumerate(sorted_24h_users[:10], 1):
+        name = user_data['name'] or user_data['username'] or str(user_id)
+        text += f"{i}. {name}: {stats['messages_24h']['active_users'][user_id]} 条\n"
     text += "</blockquote>\n"
     if sorted_most_xm_users and any(user_data['xm_count'] > 0 for _, user_data in sorted_most_xm_users):
         text += "\n🍋 羡慕统计:\n"

@@ -49,6 +49,7 @@ async def handle_tips_command(message: Message) -> None:
         "bot 的功能可以被选择性的开启或者关闭，但是示例 bot 为了方便开发和测试，默认开启了所有功能",
         "说真的，你应该去看看 @kmuav2bot",
         "任何一条 tips 消息都会在一分钟后自动消失，再也不用担心消息堆积了",
+        "/mc 命令使用了 mcstatus 库来查询 Minecraft 服务器状态，而这个库曾经由 Dinnerbone 维护",
     ]
     import random
     response = random.choice(tips)

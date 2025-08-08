@@ -44,21 +44,26 @@ async def handle_stats_command(message: Message):
     text += f"总消息数: {stats['total_messages']}\n"
     text += f"活跃用户数: {len(stats['users'])}\n\n"
     text += "🏆 发言排行榜:\n"
-
+    text += "<blockquote expandable>"
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {user_data['message_count']} 条\n"
+    text += "</blockquote>\n"
     if sorted_most_xm_users and any(user_data['xm_count'] > 0 for _, user_data in sorted_most_xm_users):
         text += "\n🍋 羡慕统计:\n"
-    for user_id, user_data in sorted_most_xm_users:
-        if user_data['xm_count'] > 0:
-            name = user_data['name'] or user_data['username'] or str(user_id)
-            text += f"{name}: {user_data['xm_count']} 次羡慕\n"
+        text += "<blockquote expandable>"
+        for user_id, user_data in sorted_most_xm_users:
+            if user_data['xm_count'] > 0:
+                name = user_data['name'] or user_data['username'] or str(user_id)
+                text += f"{name}: {user_data['xm_count']} 次羡慕\n"
+        text += "</blockquote>\n"
     if sorted_most_wocai_users and any(user_data['wocai_count'] > 0 for _, user_data in sorted_most_wocai_users):
         text += "\n🥬 卖菜统计:\n"
-    for user_id, user_data in sorted_most_wocai_users:
-        if user_data['wocai_count'] > 0:
-            name = user_data['name'] or user_data['username'] or str(user_id)
-            text += f"{name}: {user_data['wocai_count']} 次卖菜\n"
+        text += "<blockquote expandable>"
+        for user_id, user_data in sorted_most_wocai_users:
+            if user_data['wocai_count'] > 0:
+                name = user_data['name'] or user_data['username'] or str(user_id)
+                text += f"{name}: {user_data['wocai_count']} 次卖菜\n"
+        text += "</blockquote>\n"
 
     await message.reply(text)

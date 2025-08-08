@@ -30,14 +30,14 @@ async def handle_mc_status_command(message: Message):
     if server_type == 'java':
         try:
             from mcstatus import JavaServer
-            server = JavaServer.lookup(server_address)
-            status = server.status()
+            server = await JavaServer.async_lookup(server_address)
+            status = await server.async_status()
             query = None
             s_message = f"这个 Java 服务器"
             # 尝试查询服务器信息
             if query_enabled:
                 try:
-                    query = server.query()
+                    query = await server.async_query()
                 except Exception as e:
                     s_message = f"_我未能成功发送 query 请求，可能是因为服务器未开放对应端口。_\n这个 Java 服务器"
                     logging.warning('查询 Minecraft 服务器遇到了错误',e)
@@ -47,7 +47,7 @@ async def handle_mc_status_command(message: Message):
             s_message += "延迟大约有 {:.2f} ms\n".format(status.latency)
             s_message += f"服务器的 MOTD 是: ```\n{status.motd.to_minecraft()}\n```"
             s_message += f"版本信息: {status.version.name} ({status.version.protocol})\n"
-            s_message += f"你应该使用和上面的版本相同的 Minecraft 客户端连接这个服务器。\n"
+            s_message += f"你应该使用和上面的版本相同的 Minecraft 客户端连接这个服务器。\n\n"
             if query and query.software.plugins:
                 s_message += f"服务器插件: {', '.join(query.software.plugins)}\n"
             if query and query.players.names:
@@ -55,7 +55,7 @@ async def handle_mc_status_command(message: Message):
             if status.forge_data:
                 s_message += f"看起来这是一个有 mod 的服务器。\n"
             if status.enforces_secure_chat:
-                s_message += "服务器启用了消息签名，这意味着你需要调整 No Chat Reports 等类似 mod 的设置。\n"
+                s_message += "服务器启用了消息签名，这意味着你需要调整 No Chat Reports 等类似 mod 的设置。\n\n"
             s_message += "声明：这些结果均为服务器所公开的信息。查询结果仅代表bot所在的服务器对该服务器的查询结果，可能与实际情况有出入。"
             await status_message.edit_text(s_message, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
@@ -65,7 +65,7 @@ async def handle_mc_status_command(message: Message):
             from mcstatus import BedrockServer
             server = BedrockServer.lookup(server_address)
 
-            status = server.status()
+            status = await server.async_status()
 
             # 稍微汉化一下这个状态信息
             if status.gamemode == 'Survival':

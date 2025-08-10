@@ -47,7 +47,9 @@ async def handle_mc_status_command(message: Message):
             s_message += "延迟大约有 {:.2f} ms\n".format(status.latency)
             s_message += f"服务器的 MOTD 是: ```\n{status.motd.to_minecraft()}\n```"
             s_message += f"版本信息: {status.version.name} ({status.version.protocol})\n"
-            s_message += f"你应该使用和上面的版本相同的 Minecraft 客户端连接这个服务器。\n\n"
+            s_message += f"你应该使用和上面的版本相同的 Minecraft 客户端连接这个服务器。\n"
+            if (not query) and status.players.sample:
+                s_message += f"在线玩家列表: \n{', '.join(player.name for player in status.players.sample)}\n"
             if query and query.software.plugins:
                 s_message += f"服务器插件: {', '.join(query.software.plugins)}\n"
             if query and query.players.names:

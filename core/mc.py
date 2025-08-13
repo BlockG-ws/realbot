@@ -95,29 +95,30 @@ async def handle_mc_status_command(message: Message):
                 await status_message.edit_text("未知的服务器类型，请使用 'java' 或 'bedrock'")
             return
         else:
-            await message.reply("Usage: /mc <bind/server> <java/bedrock> <server_address>\n"
+            await message.reply("Usage: /mc &lt;bind/server&gt; &lt;java/bedrock&gt; &lt;server_address&gt;\n"
                                 "Example: /mc server java play.example.com")
         return
 
     option = args[0] if args else None
-    server_type = args[1] if args else 'java'
+    server_type = args[1] if len(args) > 1 else 'java'
     server_address = args[2] if len(args) >= 3 else None
     query_enabled = True if len(args) >= 4 and args[3] == 'query' else False
-    if option not in ['bind', 'server']:
-        await message.reply("Invalid option. Use 'bind' or 'server'.")
+    if option not in ['bind', 'server', 'unbind']:
+        await message.reply("Invalid option. Use '(un)bind' or 'server'.")
         return
-    if not server_address:
+    if option != 'unbind' and not server_address:
         await message.reply("你没有提供服务器地址")
         return
-    import re
-    local_ip_regex = r'^(?:(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:(?:1[6-9])|(?:2[0-9])|(?:3[0-1]))\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d{1,5})?)$'
-    if re.match(local_ip_regex, server_address) or server_address == 'localhost' or any(server_address == address for address in ['::1', 'fe80::', '.lan']):
-        await message.reply("正在与本地服务器断开连接")
-        return
-    if server_address == 'dinnerbone.com':
-        await message.reply("ɯoɔ˙ǝuoqɹǝuuᴉp/ǝlᴉɟoɹd/ddɐ˙ʎʞsq//:sdʇʇɥ")
-        # https://bsky.app/profile/dinnerbone.com , but typical dinnerbone style
-        return
+    if server_address:
+        import re
+        local_ip_regex = r'^(?:(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:(?:1[6-9])|(?:2[0-9])|(?:3[0-1]))\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d{1,5})?)$'
+        if re.match(local_ip_regex, server_address) or server_address == 'localhost' or any(server_address == address for address in ['::1', 'fe80::', '.lan']):
+            await message.reply("正在与本地服务器断开连接")
+            return
+        if server_address == 'dinnerbone.com':
+            await message.reply("ɯoɔ˙ǝuoqɹǝuuᴉp/ǝlᴉɟoɹd/ddɐ˙ʎʞsq//:sdʇʇɥ")
+            # https://bsky.app/profile/dinnerbone.com , but typical dinnerbone style
+            return
     if option == 'bind':
         if not message.chat.type in ['group', 'supergroup']:
             await message.reply("这个命令只能在群组中使用")
@@ -146,6 +147,37 @@ async def handle_mc_status_command(message: Message):
             json.dump(bindings, f, ensure_ascii=False, indent=2)
 
         await message.reply(f"已成功绑定 {server_type} 服务器: {server_address}")
+        return
+    if option == 'unbind':
+        if not message.chat.type in ['group', 'supergroup']:
+            await message.reply("这个命令只能在群组中使用")
+            return
+        bind_file = 'mc_bindings.json'
+
+        # Load existing bindings
+        if os.path.exists(bind_file):
+            with open(bind_file, 'r', encoding='utf-8') as f:
+                bindings = json.load(f)
+        else:
+            bindings = {}
+
+        # Get chat ID
+        chat_id = str(message.chat.id)
+
+        # Initialize chat binding if not exists
+        if chat_id not in bindings:
+            await message.reply("这个群组没有绑定任何服务器，请先使用 /mc bind 命令绑定服务器")
+            return
+
+        # Unbind the specified server type
+        if server_type in bindings[chat_id]:
+            bindings[chat_id][server_type] = None
+
+        # Save bindings back to file
+        with open(bind_file, 'w', encoding='utf-8') as f:
+            json.dump(bindings, f, ensure_ascii=False, indent=2)
+
+        await message.reply(f"已成功解绑 {server_type} 服务器")
         return
     if option == 'server':
         status_message = await message.reply('正在查询服务器状态...')

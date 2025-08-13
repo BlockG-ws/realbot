@@ -1,3 +1,5 @@
+import string
+
 from aiogram.types import Message
 
 from config import config
@@ -9,10 +11,9 @@ async def handle_actions(message: Message) -> None:
         logging.debug(f"收到了命中 / 开头的的消息，但是 actions 功能未启用，跳过处理")
         return
     rawtext = message.text
-    logging.debug(f"收到了命中 / 开头的消息: {rawtext}")
-    logging.debug(rawtext.replace('/',''))
-    # 如果消息是 / 开头的，但是没有后续有意义的内容，则不处理
-    if len(rawtext.replace('/','')) == 0 or not rawtext.replace('/','').isalpha():
+    logging.debug(f"收到了命中 / 开头的消息")
+    # 如果消息是 / 开头的，但是后续没有有意义的内容，则不处理
+    if len(rawtext.replace('/','')) == 0 or all(char in string.punctuation for char in rawtext.replace('/','')):
         return
     # 防止识别成命令而被误触发
     import re

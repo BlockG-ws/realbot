@@ -13,7 +13,8 @@ from config import config
 
 whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
-                                           'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']
+                                           'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
+                                            'www.xiaohongshu.com','zhuanlan.zhihu.com']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
@@ -157,7 +158,7 @@ def reserve_whitelisted_params(url):
             new_query_params = {}
             cleaned_query = urlencode(new_query_params, doseq=True)
             return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']:
+    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com', 'zhuanlan.zhihu.com']:
         # 不保留任何参数
         new_query_params = {}
         if 'bilibili.com' in parsed_url.hostname and 'video' in parsed_url.path and query_params:

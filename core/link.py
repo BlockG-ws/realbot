@@ -250,7 +250,7 @@ async def handle_links(message: Message):
         final_urls = [url for url in final_urls if url is not None]
         # 回复处理后的链接
         if final_urls:
-            await message.reply(f"<blockquote expandable>\n{"\n\n".join(final_urls)}\n</blockquote>\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n"
+            await message.reply(f"<blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n"
                                 f"注意：这个功能是试验性的，可能会出现问题。"
                                 f"\n如果你找到了问题，欢迎"
                                 f"把它通过 <code>/report_broken_links 链接 需要去除的参数等等</code> 报告给开发者！")

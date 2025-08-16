@@ -10,6 +10,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
+from core.inline import handle_inline_query
 from core.mc import handle_mc_status_command
 from core.middleware.rikki import RikkiMiddleware
 from core.post_to_fedi import router as fedi_router
@@ -77,6 +78,7 @@ class TelegramAdapter:
         # repeater 模块
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text == '我是笨蛋')(handle_baka)
+        router.inline_query()(handle_inline_query)
         # 捕获所有其他消息
         dummy_router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)
 

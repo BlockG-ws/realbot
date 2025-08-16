@@ -458,6 +458,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pangu"
+version = "4.0.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/dd/55a1e9d35ac17f49869359b2197fc09d17ee024ba545985b49b3e75a870a/pangu-4.0.6.1.tar.gz", hash = "sha256:f799d127709fe5ecff5d476945ac63d4be758b7bda02efb95715f1dc24472a2f", size = 6288, upload-time = "2019-02-08T18:17:30.527Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/77/b52fac2ca4e4596f22dd6200b99ad515fb64b1ae7d3a12325b45b11e2a67/pangu-4.0.6.1-py3-none-any.whl", hash = "sha256:5023dced34b48da7ec61a2847efcbb8cf4fb748f8e589e1e7dfb008b7ad00206", size = 6401, upload-time = "2019-02-08T18:17:28.142Z" },
+]
+
+[[package]]
 name = "propcache"
 version = "0.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -679,6 +688,7 @@ dependencies = [
     { name = "mastodon-py" },
     { name = "matrix-nio" },
     { name = "mcstatus" },
+    { name = "pangu" },
     { name = "python-abp" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -692,6 +702,7 @@ requires-dist = [
     { name = "mastodon-py", specifier = "==2.0.1" },
     { name = "matrix-nio", specifier = "==0.25.2" },
     { name = "mcstatus", specifier = "==12.0.2" },
+    { name = "pangu", specifier = "==4.0.6.1" },
     { name = "python-abp", specifier = "==0.2.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.4" },

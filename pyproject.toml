@@ -10,6 +10,7 @@ dependencies = [
     "mastodon-py==2.0.1",
     "matrix-nio==0.25.2",
     "mcstatus==12.0.2",
+    "pangu==4.0.6.1",
     "python-abp==0.2.0",
     "pyyaml>=6.0.2",
     "requests>=2.32.4",

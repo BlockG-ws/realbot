@@ -41,7 +41,11 @@ class MessageRepeater:
                 content not in self.repeated_messages[chat_id]):
             # Mark as repeated and send the message
             self.repeated_messages[chat_id].add(content)
-            await message.copy_to(chat_id)
+            # if the message replies to another message, copy it with the reply_to_message_id
+            if message.reply_to_message:
+                await message.copy_to(chat_id, reply_to_message_id=message.reply_to_message.message_id)
+            else:
+                await message.copy_to(chat_id)
 
         self.last_messages[chat_id] = content
 

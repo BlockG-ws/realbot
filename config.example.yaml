@@ -6,6 +6,14 @@ admin: 123456789
 # 这部分仅限于汇报链接跟踪参数去除的问题
 dev: 616760897
 
+start_telegram_bot: true
+also_start_matrix_bot: false
+
+matrix:
+  homeserver: "https://matrix.org"
+  user_id: "@your_bot:matrix.org"
+  # Token 请使用登录后生成的 Access Token，一般可以在客户端的设置页面找到，然后设置到 MATRIX_BOT_TOKEN 环境变量中
+  # 如果你想使用一个新的 token，可以使用 helpers/matrix_login.py 脚本生成一个新的 token
 
 
 # global features settings

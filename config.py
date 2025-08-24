@@ -27,6 +27,28 @@ class Config:
         """Get developer user ID"""
         return self.config_data.get('dev')
 
+    def get_config_value(self, key: str, default: Any = None) -> Any:
+        """
+        Get a configuration value by key
+
+        Args:
+            key: Configuration key to retrieve
+            default: Default value if key is not found
+
+        Returns:
+            The configuration value or default if not found
+        """
+        keys = key.split('.')
+        value = self.config_data
+
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+
+        return value
+
     def is_feature_enabled(self, feature_name: str, chat_id: Optional[int] = None) -> bool:
         """
         Check if a feature is enabled for a specific chat or globally

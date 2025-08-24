@@ -127,7 +127,7 @@ async def handle_inline_query(query: InlineQuery):
         async with aiohttp.ClientSession() as session:
             # 先访问 bilibili.com 获取 cookies
             async with session.get('https://bilibili.com', headers={
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"}) as response:
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"}) as response:
                 pass
 
             # 使用获取的 cookies 请求搜索 API
@@ -136,7 +136,7 @@ async def handle_inline_query(query: InlineQuery):
                     'https://api.bilibili.com/x/web-interface/search/all/v2',
                     params=params,
                     headers={
-                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"
                     }
             ) as response:
                 b23_resp = await response.json()

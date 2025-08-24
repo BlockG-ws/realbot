@@ -1,6 +1,8 @@
 # 一个暂时性的办法用来存储歌曲信息
 import aiohttp
 
+from helpers.wbi import get_signed_params
+
 songs = {
     "将军的小曲,三太阳的小曲": "你若三冬 - 阿悠悠",
     "全斗焕的小曲,光州跑男的小曲,打成一片的小曲,无限制格斗的小曲,重拳的小曲,光州的小曲": "Shake and Sway",
@@ -37,18 +39,21 @@ async def fetch_from_b23_api(song_name):
             pass
 
         # 使用获取的 cookies 请求搜索 API
-        params = {'keyword': song_name}
+        params = {'keyword': song_name, 'search_type': 'video', 'duration': 1, 'order': 'click', 'tid': 3}
+        # 过一次 wbi 签名，防止被风控
+        signed_params = get_signed_params(params)
         async with session.get(
-                'https://api.bilibili.com/x/web-interface/search/all/v2',
-                params=params,
+                'https://api.bilibili.com/x/web-interface/wbi/search/type',
+                params=signed_params,
                 headers={
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+                    "referer": "https://www.bilibili.com/",
                 }
         ) as response:
             resp = await response.json()
-    if resp and resp.get('data'):
+    if resp and resp.get('data').get('result'):
         # 假设我们只取第一个视频的结果
-        videos = next((item for item in resp['data']['result'] if item.get('result_type') == 'video'), None)
+        videos = next((item for item in resp['data']['result'] if item.get('type') == 'video'), None)
         first_result = videos['data'][0]
         title = first_result.get('title').replace('<em class="keyword">', '').replace('</em>', '') # 清理标题中的 HTML 标签
         link = first_result.get('arcurl')

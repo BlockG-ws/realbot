@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 import sys
 
 import config
@@ -20,7 +21,20 @@ async def main():
         # Initialize and start Matrix bot if configured
         tasks.append(matrix_bot.main())
     if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
+        # Setup signal handler for graceful shutdown
+        def signal_handler(signum, frame):
+            logging.info("Received shutdown signal, cancelling all tasks...")
+            for task in tasks:
+                task.cancel()
+
+        # Register signal handlers
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            asyncio.get_event_loop().add_signal_handler(sig, signal_handler, sig, None)
+
+        try:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            logging.info("All tasks cancelled successfully")
     else:
         logging.error("No bot is configured to start. Please check your configuration.")
 

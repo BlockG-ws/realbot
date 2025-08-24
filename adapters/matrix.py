@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 
 from nio import AsyncClient, MatrixRoom, RoomMessageText
 from nio.events.room_events import RoomMessageText
@@ -95,7 +96,6 @@ class MatrixAdapter:
     async def stop(self):
         """Stop the bot."""
         logger.info("Stopping Matrix bot...")
-        await self.client.logout()
         await self.client.close()
 
 
@@ -144,10 +144,13 @@ async def main():
         await bot.start()
     except KeyboardInterrupt:
         logger.info("Bot interrupted by user")
+        # TODO: fix unable to gracefully shutdown issue
+        await bot.stop()
+        sys.exit(0)
     except Exception as e:
         logger.error(f"Bot error: {e}")
-    finally:
         await bot.stop()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

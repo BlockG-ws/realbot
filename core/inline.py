@@ -133,6 +133,58 @@ async def handle_inline_query(query: InlineQuery):
             ),
         ], cache_time=0)
         return
+    # 如果查询以 "是什么歌" 结尾，则尝试根据关键词获取歌曲名称
+    if query_text.endswith("是什么歌"):
+        keywords = query_text[:-4].strip()
+        from helpers.songs import get_song_by_partial_match, get_song_link
+        # 尝试根据关键词获取歌曲名称
+        song_name = get_song_by_partial_match(keywords)
+        song_link = get_song_link(song_name) if song_name else None
+        if song_name:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title=f"我感觉你应该在找 {song_name}",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"你是不是在找：{song_name}\n{song_link}\n如果不是，可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"根据关键词 '{keywords}' 找到的歌曲"
+                )
+            ], cache_time=0)
+            return
+        else:
+            from helpers.songs import fetch_from_b23_api
+            # 如果没有在本地找到歌曲，则尝试从 Bilibili API 获取
+            result = await fetch_from_b23_api(keywords)
+            if result:
+                song_name, song_link = result
+                await query.answer(results=[
+                    InlineQueryResultArticle(
+                        id="1",
+                        title=f"我感觉你应该在找 {song_name}",
+                        input_message_content=InputTextMessageContent(
+                            message_text=f"你是不是在找：{song_name}\n{song_link}\n如果不是，可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
+                            parse_mode=ParseMode.MARKDOWN
+                        ),
+                        description=f"根据关键词 '{keywords}' 找到的歌曲"
+                    )
+                ], cache_time=0)
+                return
+            # 如果还是没有找到，则返回一个默认的结果
+            else:
+                await query.answer(results=[
+                    InlineQueryResultArticle(
+                        id="1",
+                        title=f"抱歉，数据库中没有搜索到 '{keywords}' 的歌曲",
+                        input_message_content=InputTextMessageContent(
+                            message_text=f"可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
+                            parse_mode=ParseMode.MARKDOWN
+                        ),
+                        description=f"或许你应该尝试在网上搜索"
+                    )
+                ], cache_time=0)
+                return
     # 如果没有匹配到任何内容，则返回一个默认的结果
     await query.answer(results=[
         InlineQueryResultArticle(

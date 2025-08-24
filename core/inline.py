@@ -106,7 +106,7 @@ async def handle_inline_query(query: InlineQuery):
         return
     """
     if query_text.startswith('anuo'):
-        main = query_text.replace("anuo", "").strip()
+        main = query_text.replace("anuo", "",1).strip()
         await query.answer(results=[
             InlineQueryResultArticle(
                 id="1",

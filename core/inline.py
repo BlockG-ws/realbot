@@ -1,5 +1,6 @@
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from aiogram.utils.formatting import BlockQuote, Text
 
 
 async def handle_inline_query(query: InlineQuery):
@@ -118,6 +119,68 @@ async def handle_inline_query(query: InlineQuery):
                 description=f"{"我可能是阿诺，但我是阿诺不太可能" if not main else f"{main}有可能，但{main}不太可能"}"
             )
         ], cache_time=0)
+        return
+    if query_text.startswith("b23"):
+        b23_query = query_text.replace("b23", "",1).strip()
+        b23_resp = None
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            # 先访问 bilibili.com 获取 cookies
+            async with session.get('https://bilibili.com', headers={
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"}) as response:
+                pass
+
+            # 使用获取的 cookies 请求搜索 API
+            params = {'keyword': b23_query}
+            async with session.get(
+                    'https://api.bilibili.com/x/web-interface/search/all/v2',
+                    params=params,
+                    headers={
+                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0"
+                    }
+            ) as response:
+                b23_resp = await response.json()
+        search_results = []
+        if b23_resp and b23_resp.get('data'):
+            # 假设我们只取第一个视频的结果
+            videos = next((item for item in b23_resp['data']['result'] if item.get('result_type') == 'video'), None)
+            if videos and videos.get('data'):
+                # 取前十个结果
+                for i, video in enumerate(videos['data'][:10]):
+                    title = video.get('title', '').replace('<em class="keyword">', '').replace('</em>', '')
+                    bvid = video.get('bvid', '')
+                    link = video.get('arcurl', '').replace('http://','https://',1)
+                    video_type = video.get('typename', '')
+                    author = video.get('author', '')
+                    play = video.get('play', 0)
+                    thumbnail = f"https:{video.get('pic')}"
+                    description = video.get('description', '')
+
+                    search_results.append(InlineQueryResultArticle(
+                        id=str(i + 1),
+                        title=title,
+                        thumbnail_url=thumbnail,
+                        input_message_content=InputTextMessageContent(
+                            message_text=f"<a href=\"{link}\">{title}</a>\n{video_type} | 作者：{author} | "
+                                         f"播放量：{play} {Text(BlockQuote(description)).as_html()}",
+                            parse_mode=ParseMode.HTML
+                        ),
+                        description=f"{bvid} | 作者：{author} | 播放量：{play}"
+                    ))
+        if b23_query and search_results:
+            await query.answer(results=search_results, cache_time=0)
+        else:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="输入搜索内容",
+                    input_message_content=InputTextMessageContent(
+                        message_text="ta 好像想在 b 站搜索视频，但 ta 没有输入任何内容。",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description="请在 'b23' 后输入你想要搜索的内容。"
+                )
+            ], cache_time=0)
         return
     if query_text.startswith("将军："):
         await query.answer(results=[

@@ -26,6 +26,7 @@ class MatrixAdapter:
             token: The bot's token
             device_name: Device name for the bot
         """
+        self._sync_task = None
         self.homeserver = homeserver
         self.user_id = user_id
         self.token = token
@@ -91,12 +92,30 @@ class MatrixAdapter:
         logger.info(f"Logged in as {self.user_id}")
 
         # Sync and listen for events
-        await self.client.sync_forever(timeout=30000)
+        try:
+            self._sync_task = asyncio.create_task(self.client.sync_forever(timeout=30000, full_state=True))
+            await self._sync_task
+        except KeyboardInterrupt:
+            logger.info("Keyboard interrupt received, shutting down...")
+        except asyncio.CancelledError:
+            logger.info("Sync loop cancelled, shutting down...")
+        finally:
+            await self.client.close()
 
     async def stop(self):
-        """Stop the bot."""
+        """Stop the bot gracefully."""
         logger.info("Stopping Matrix bot...")
-        await self.client.close()
+        try:
+            if hasattr(self, '_sync_task') and not self._sync_task.done():
+                self._sync_task.cancel()
+                try:
+                    await self._sync_task
+                except asyncio.CancelledError:
+                    pass
+            # Close the client connection
+            await self.client.close()
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
 
 
 # Example command handlers
@@ -139,18 +158,31 @@ async def main():
     bot.add_command("echo", echo_command)
     bot.add_command("help", help_command)
 
+    # Start the bot with signal handling
     try:
-        print("Starting Matrix bot...")
+        # Setup signal handlers for graceful shutdown
+        import signal
+
+        def signal_handler(signum, frame):
+            logger.info(f"Received signal {signum}, initiating shutdown...")
+            loop = asyncio.get_event_loop()
+            loop.create_task(bot.stop())
+            if not loop.is_running():
+                return
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
         await bot.start()
     except KeyboardInterrupt:
-        logger.info("Bot interrupted by user")
-        # TODO: fix unable to gracefully shutdown issue
+        logger.info("Shutdown signal received")
         await bot.stop()
-        sys.exit(0)
     except Exception as e:
         logger.error(f"Bot error: {e}")
+    finally:
+        # Make sure to close the client connection on disconnect
+        logger.info('Shutting down matrix bot...')
         await bot.stop()
-        sys.exit(1)
 
 
 if __name__ == "__main__":

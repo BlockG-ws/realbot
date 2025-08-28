@@ -182,7 +182,10 @@ async def handle_inline_query(query: InlineQuery):
                 )
             ], cache_time=0)
         return
-    if query_text.startswith("将军："):
+    if query_text.startswith("将军"):
+        # fallback support for users who forget the colon
+        if not query_text.startswith('将军：'):
+            query_text = query_text.replace('将军', '将军：',1)
         await query.answer(results=[
             InlineQueryResultArticle(
                 id="1",

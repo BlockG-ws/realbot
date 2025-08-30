@@ -1,6 +1,6 @@
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent
-from aiogram.utils.formatting import BlockQuote, Text
+from aiogram.utils.formatting import Text, ExpandableBlockQuote
 
 
 async def handle_inline_query(query: InlineQuery):
@@ -162,10 +162,11 @@ async def handle_inline_query(query: InlineQuery):
                         thumbnail_url=thumbnail,
                         input_message_content=InputTextMessageContent(
                             message_text=f"<a href=\"{link}\">{title}</a>\n{video_type} | 作者：{author} | "
-                                         f"播放量：{play} {Text(BlockQuote(description)).as_html()}",
-                            parse_mode=ParseMode.HTML
+                                         f"播放量：{play} {Text(ExpandableBlockQuote(description)).as_html()}",
+                            parse_mode=ParseMode.HTML,
+                            disable_web_page_preview=True
                         ),
-                        description=f"{bvid} | 作者：{author} | 播放量：{play}"
+                        description=f"{bvid} | {author} | {play}次播放"
                     ))
         if b23_query and search_results:
             await query.answer(results=search_results, cache_time=0)

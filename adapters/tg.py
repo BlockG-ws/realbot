@@ -73,7 +73,7 @@ class TelegramAdapter:
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
         unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
-                    F.sender_chat.type == 'channel') & F.is_automatic_forward)(
+                    F.sender_chat.type == 'channel'))(
             handle_unpin_channel_message)
         # repeater 模块
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)

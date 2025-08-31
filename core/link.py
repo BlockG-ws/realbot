@@ -162,6 +162,13 @@ def reserve_whitelisted_params(url):
     elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com', 'zhuanlan.zhihu.com']:
         # 不保留任何参数
         new_query_params = {}
+        if parsed_url.hostname == 'mall.bilibili.com' and query_params.get('itemsId'):
+            # 处理bilibili工房的商品链接，保留 itemsId 和 page 参数
+            new_query_params['itemsId'] = query_params['itemsId']
+            new_query_params['page'] = query_params.get('page')
+        if parsed_url.hostname == 'gf.bilibili.com' and 'item/detail' in parsed_url.path:
+            # TODO: fix
+            new_query_params = {}
         if 'bilibili.com' in parsed_url.hostname and 'video' in parsed_url.path and query_params:
             # 对于 bilibili 的视频链接，保留一些必要的参数
             if 't' in query_params:

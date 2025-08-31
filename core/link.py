@@ -14,7 +14,8 @@ from config import config
 whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
-                                            'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','www.youtube.com']
+                                            'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','www.youtube.com',
+                                            'music.youtube.com','youtu.be']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
@@ -174,12 +175,12 @@ def reserve_whitelisted_params(url):
         # 重新构建URL
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.baidu.com','www.youtube.com']:
+    elif parsed_url.hostname in ['www.baidu.com','www.youtube.com','music.youtube.com','youtu.be']:
         new_query_params = {}
         if parsed_url.hostname == 'www.baidu.com' and 'wd' in query_params:
             # 百度搜索链接保留 wd 参数
             new_query_params['wd'] = query_params['wd']
-        if parsed_url.hostname == 'www.youtube.com':
+        if 'youtube.com' in parsed_url.hostname and query_params:
             # YouTube 视频链接保留 v 参数
             if 'v' in query_params:
                 new_query_params['v'] = query_params['v'] # 保留 v 参数

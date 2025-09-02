@@ -232,6 +232,9 @@ async def process_url(url):
             final_url = transform_into_fixed_url(final_url)
         if url != final_url:
             return final_url
+        else:
+            # 链接没有变化，直接返回 None，避免重复处理
+            return None
     # 对于其它的网站，首先清理跟踪参数
     cleaned_url = remove_tracking_params(url)
     # 扩展短链接

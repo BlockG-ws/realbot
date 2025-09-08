@@ -11,7 +11,7 @@ async def handle_inline_query(query: InlineQuery):
     """
     print(f"Received inline query")
     query_text = query.query
-    if query_text == "":
+    if not query_text:
         await query.answer(results=[
             InlineQueryResultArticle(
                 id="1",
@@ -26,7 +26,7 @@ async def handle_inline_query(query: InlineQuery):
         return
 
     if query_text.startswith("search"):
-        search_query = query_text.replace("search", "").strip()
+        search_query = query_text.replace("search", "",1).strip()
         if search_query:
             await query.answer(results=[
                 InlineQueryResultArticle(
@@ -63,7 +63,7 @@ async def handle_inline_query(query: InlineQuery):
         return
 
     if query_text.startswith("pg"):
-        text = query_text.replace("pg", "").strip()
+        text = query_text.replace("pg", "",1).strip()
         import pangu
         text = pangu.spacing_text(text)
         await query.answer(results=[

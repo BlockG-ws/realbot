@@ -2,6 +2,8 @@ from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 from aiogram.utils.formatting import Text, ExpandableBlockQuote
 
+from core.link import clean_link_in_text
+
 
 async def handle_inline_query(query: InlineQuery):
     """
@@ -183,6 +185,34 @@ async def handle_inline_query(query: InlineQuery):
                 )
             ], cache_time=0)
         return
+    if "http" in query_text:
+        # 实现清理 URL 的功能
+        cleaned_links = await clean_link_in_text(query_text)
+        if cleaned_links:
+            result = '\n\n'.join(cleaned_links)
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="清理后的链接",
+                    input_message_content=InputTextMessageContent(
+                        message_text=Text(ExpandableBlockQuote(result)).as_markdown(),
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"发送清理后的链接：{result}"
+                )
+            ], cache_time=0)
+        else:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="似乎没有链接需要被清理",
+                    input_message_content=InputTextMessageContent(
+                        message_text=query_text,
+                        parse_mode=None
+                    ),
+                    description="发送原始文本")
+            ], cache_time=0)
+        return
     if query_text.startswith("将军"):
         # fallback support for users who forget the colon
         if not query_text.startswith('将军：'):
@@ -223,7 +253,9 @@ async def handle_inline_query(query: InlineQuery):
         else:
             from helpers.songs import fetch_from_b23_api
             # 如果没有在本地找到歌曲，则尝试从 Bilibili API 获取
-            result = await fetch_from_b23_api(keywords)
+            #result = await fetch_from_b23_api(keywords)
+            result = None
+            # 因为 B 站的搜索 API 经常失效，所以这里暂时注释掉
             if result:
                 song_name, song_link = result
                 await query.answer(results=[

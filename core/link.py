@@ -14,7 +14,7 @@ from config import config
 whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
-                                            'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','www.youtube.com',
+                                            'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
                                             'music.youtube.com','youtu.be']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
@@ -182,7 +182,7 @@ def reserve_whitelisted_params(url):
         # 重新构建URL
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.baidu.com','www.youtube.com','music.youtube.com','youtu.be']:
+    elif parsed_url.hostname in ['www.baidu.com','m.youtube.com','www.youtube.com','music.youtube.com','youtu.be']:
         new_query_params = {}
         if parsed_url.hostname == 'www.baidu.com' and 'wd' in query_params:
             # 百度搜索链接保留 wd 参数
@@ -261,23 +261,29 @@ async def process_url(url):
         return final_url
     return None
 
+async def clean_link_in_text(text):
+    # URL regex pattern
+    url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    urls = re.findall(url_pattern, text)
+    if not urls:
+        return None
+    final_urls = await asyncio.gather(*[process_url(url) for url in urls])
+    # Filter out None values
+    final_urls = [url for url in final_urls if url is not None]
+    return final_urls
+
 async def handle_links(message: Message):
     if not config.is_feature_enabled('link', message.chat.id):
         return
-    # URL regex pattern
-    url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+
     text = message.text or message.caption
     # Extract URLs from message text
     if text:
-        urls = re.findall(url_pattern, text)
-        if not urls:
-            return
-        final_urls = await asyncio.gather(*[process_url(url) for url in urls])
-        # Filter out None values
-        final_urls = [url for url in final_urls if url is not None]
+        final_urls = await clean_link_in_text(text)
         # 回复处理后的链接
         if final_urls:
-            await message.reply(f"<blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n"
-                                f"注意：这个功能是试验性的，可能会出现问题。"
-                                f"\n如果你找到了问题，欢迎"
-                                f"把它通过 <code>/report_broken_links 链接 需要去除的参数等等</code> 报告给开发者！")
+            await message.reply(
+                f"<blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n消息里有包含跟踪参数的链接，已经帮你转换了哦~\n\n"
+                f"注意：这个功能是试验性的，可能会出现问题。"
+                f"\n如果你找到了问题，欢迎"
+                f"把它通过 <code>/report_broken_links 链接 需要去除的参数等等</code> 报告给开发者！")

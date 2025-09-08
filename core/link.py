@@ -19,6 +19,8 @@ whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.co
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
+has_better_alternative_links = ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com', 'youtu.be','m.youtube.com','x.com', 'twitter.com']
+
 def matches_adb_selector(url, selector):
     """Check if URL matches the given selector"""
     if selector['type'] == 'url-pattern':
@@ -206,7 +208,7 @@ def reserve_whitelisted_params(url):
     return url
 
 def transform_into_fixed_url(url):
-    """ 转换为修复了链接预览的链接 """
+    """ 转换为修复的链接 """
     parsed_url = urlparse(url)
 
     if parsed_url.hostname in ['x.com', 'twitter.com']:
@@ -218,6 +220,9 @@ def transform_into_fixed_url(url):
     if parsed_url.hostname in ['www.iesdouyin.com']:
         # 把抖音分享链接转换为正常的 www.douyin.com
         return urlunparse(parsed_url._replace(netloc='www.douyin.com'))
+    if parsed_url.hostname in ['youtu.be','m.youtube.com']:
+        # 把 youtu.be 和 m.youtube.com 的链接转换为 www.youtube.com
+        return urlunparse(parsed_url._replace(netloc='www.youtube.com'))
     return url
 
 async def process_url(url):
@@ -228,7 +233,7 @@ async def process_url(url):
     # 对于适配的网站，直接保留白名单参数并返回
     if urlparse(url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(url)
-        if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
+        if urlparse(final_url).hostname in has_better_alternative_links:
             final_url = transform_into_fixed_url(final_url)
         if url != final_url:
             return final_url
@@ -246,12 +251,14 @@ async def process_url(url):
     # 对于扩展短链接之后的适配的网站，直接保留白名单参数并返回
     if urlparse(extended_url).hostname in whitelist_param_links:
         final_url = reserve_whitelisted_params(extended_url)
-        if urlparse(final_url).hostname in ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com']:
+        if urlparse(final_url).hostname in has_better_alternative_links:
             final_url = transform_into_fixed_url(final_url)
         if url != final_url:
             return final_url
-    if urlparse(extended_url).hostname in ['x.com', 'twitter.com']:
-        # 对于 Twitter 链接，转换为 fixupx.com
+        else:
+            # 链接没有变化，直接返回 None，避免重复处理
+            return None
+    if urlparse(extended_url).hostname in has_better_alternative_links:
         removed_tracking_url = remove_tracking_params(extended_url)
         final_url = transform_into_fixed_url(removed_tracking_url)
     else:

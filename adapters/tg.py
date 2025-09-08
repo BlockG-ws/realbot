@@ -22,7 +22,7 @@ from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
 from core.report_links import report_broken_links
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command, handle_ping_command, \
-    handle_tips_command, handle_about_command
+    handle_tips_command, handle_about_command, handle_nexusmods_id
 from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
 from core.middleware.stats import MessageStatsMiddleware
@@ -77,6 +77,7 @@ class TelegramAdapter:
             handle_unpin_channel_message)
         # repeater 模块
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
+        router.message(F.text.regexp(r'(n|N) ?网尾号 ?[0-9]*'))(handle_nexusmods_id)
         router.message(F.text == '我是笨蛋')(handle_baka)
         router.inline_query()(handle_inline_query)
         # 捕获所有其他消息

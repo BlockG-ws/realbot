@@ -88,6 +88,11 @@ async def handle_about_command(message: Message) -> None:
         response += f"也就大概花了 {minutes} 分 {seconds} 秒..."
     await about_message.edit_text(response)
 
+async def handle_nexusmods_id(message: Message) -> None:
+    """输入n网尾号xxxx之后主动返回星露谷物语的对应mod"""
+    nexusmods_id = message.text.replace(" ","").replace("N网尾号","").replace("n网尾号","")
+    await message.reply(f"https://www.nexusmods.com/stardewvalley/mods/{nexusmods_id}")
+
 async def dummy_handler(message: Message) -> None:
     """A handler to catch all other messages"""
     pass

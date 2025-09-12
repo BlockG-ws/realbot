@@ -293,8 +293,26 @@ async def handle_inline_query(query: InlineQuery):
                 message_text="小娜😭",
                 parse_mode=ParseMode.MARKDOWN
             ),
-            description="很抱歉，我还不能理解你说的内容。"
-        )
+            description="很抱歉，我还不能理解你说的内容，但你可以试试："
+        ),
+        InlineQueryResultArticle(
+            id="3",
+            title=f"全 部 加 上 空 格",
+            input_message_content=InputTextMessageContent(
+                message_text=" ".join(query_text),
+                parse_mode=ParseMode.MARKDOWN
+            ),
+            description="很臭的功能"
+        ),
+        InlineQueryResultArticle(
+            id="4",
+            title=f"命令列表",
+            input_message_content=InputTextMessageContent(
+                message_text=query_text,
+                parse_mode=ParseMode.MARKDOWN
+            ),
+            description="search, pg, anuo, 将军"
+        ),
     ], cache_time=0)
     return
 

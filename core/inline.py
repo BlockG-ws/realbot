@@ -196,7 +196,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="清理后的链接",
                     input_message_content=InputTextMessageContent(
                         message_text=Text(ExpandableBlockQuote(result)).as_markdown(),
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"发送清理后的链接：{result}"
                 )

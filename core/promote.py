@@ -16,7 +16,7 @@ async def handle_promote_command(message: Message) -> None:
             await message.reply('咱不知道给什么头衔呢')
             return
         else:
-            member = await message.chat.get_member(message.reply_to_message.from_user.id)
+            member = await message.chat.get_member(message.reply_to_message.from_user.id if message.reply_to_message.from_user.id else message.from_user.id)
             if len(title) > 16:
                 await message.reply('头衔太长了，咱设置不了')
                 return
@@ -34,7 +34,7 @@ async def handle_promote_command(message: Message) -> None:
                         f'{message.from_user.mention_html()} 把 {message.reply_to_message.from_user.mention_html()} 变成了 <b>{title}</b>！',
                         parse_mode='HTML')
                 else:
-                    await message.chat.promote(message.reply_to_message.from_user.id, can_manage_chat=True)
+                    await message.chat.promote(message.from_user.id, can_manage_chat=True)
                     await message.chat.set_administrator_custom_title(message.from_user.id, title)
                     await message.reply(
                         f'{message.from_user.mention_html()} 把自己变成了 <b>{title}</b>！',

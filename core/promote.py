@@ -1,5 +1,6 @@
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
+from emoji import is_emoji
 
 from config import config
 
@@ -18,6 +19,9 @@ async def handle_promote_command(message: Message) -> None:
             member = await message.chat.get_member(message.reply_to_message.from_user.id)
             if len(title) > 16:
                 await message.reply('头衔太长了，咱设置不了')
+                return
+            if any(is_emoji(s) for s in title):
+                await message.reply('你这叽里咕噜的杜叔叔也看不懂啊')
                 return
             if member.status == 'creator':
                 await message.reply('咱不能给群主设置头衔')

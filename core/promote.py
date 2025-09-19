@@ -16,7 +16,7 @@ async def handle_promote_command(message: Message) -> None:
             await message.reply('咱不知道给什么头衔呢')
             return
         else:
-            member = await message.chat.get_member(message.reply_to_message.from_user.id if message.reply_to_message.from_user.id else message.from_user.id)
+            member = await message.chat.get_member(message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id)
             if len(title) > 16:
                 await message.reply('头衔太长了，咱设置不了')
                 return

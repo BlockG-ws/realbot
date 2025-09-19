@@ -11,7 +11,7 @@ from aiogram.types import Message
 
 from config import config
 
-whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com',
+whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com', 'y.music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
                                             'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
@@ -148,7 +148,7 @@ def reserve_whitelisted_params(url):
     parsed_url = urlparse(url)
     query_params = parse_qs(parsed_url.query)
 
-    if parsed_url.hostname in ['item.taobao.com','detail.tmall.com','h5.m.goofish.com','music.163.com']:
+    if parsed_url.hostname in ['item.taobao.com','detail.tmall.com','h5.m.goofish.com','music.163.com','y.music.163.com']:
         if 'id' in query_params:
             # 只保留id参数，创建新的query_params
             new_query_params = {'id': query_params['id']}

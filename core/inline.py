@@ -214,6 +214,39 @@ async def handle_inline_query(query: InlineQuery):
                     description="发送原始文本")
             ], cache_time=0)
         return
+    if query_text.startswith("bp"):
+        blood_pressured_query = query_text.replace("bp", "", 1).strip()
+        if blood_pressured_query:
+            # 使用结巴分词对文本进行分词
+            import jieba
+            words = jieba.lcut(blood_pressured_query)
+            import random
+            words.insert(random.randint(0, len(words)), random.choice(["这个", "那个"]))
+            split_text = '\n'.join(words)
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="高血压",
+                    input_message_content=InputTextMessageContent(
+                        message_text=split_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"有一种说半天话也没说明白的感觉"
+                ),
+            ], cache_time=0)
+            return
+        else:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="高血压",
+                    input_message_content=InputTextMessageContent(
+                        message_text="这个 那个",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"你到底要说啥啊"
+                ),
+            ], cache_time=0)
     if query_text.startswith("将军"):
         # fallback support for users who forget the colon
         if not query_text.startswith('将军：'):
@@ -312,7 +345,7 @@ async def handle_inline_query(query: InlineQuery):
                 message_text=query_text,
                 parse_mode=ParseMode.MARKDOWN
             ),
-            description="search, pg, anuo, 将军"
+            description="search, pg, anuo, bp, 将军"
         ),
     ], cache_time=0)
     return

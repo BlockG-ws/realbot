@@ -294,8 +294,4 @@ async def handle_links(message: Message):
         # 回复处理后的链接
         if final_urls:
             await message.reply(
-                f"<blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n消息里有需要被处理的链接，"
-                f"已经帮你处理了哦~\n\n"
-                f"注意：这个功能是试验性的，可能会出现问题。"
-                f"\n如果你找到了问题，欢迎"
-                f"把它通过 <code>/report_broken_links 链接 需要去除的参数等等</code> 报告给开发者！")
+                f"Cleaned URL: <blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n",disable_web_page_preview=True)

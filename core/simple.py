@@ -43,13 +43,13 @@ async def handle_tips_command(message: Message) -> None:
         "你知道吗：其实 tips 都是废话（确信",
         "如果 bot 没有回复链接，说明链接不需要被清理",
         "不管如何，你今天都很棒！",
-        "这个 bot 暂时还跑在一台运行着 Arch Linux 的笔电上",
         "/ping 命令其实显示的是 bot 到 Telegram 服务器的延迟，而不是用户到 bot 的延迟",
         "bot 的链接清理功能其实大多归功于 ➗ Actually Legitimate URL Shortener Tool 规则集",
         "bot 的功能可以被选择性的开启或者关闭，但是示例 bot 为了方便开发和测试，默认开启了所有功能",
         "说真的，你应该去看看 @kmuav2bot",
         "任何一条 tips 消息都会在一分钟后自动消失，再也不用担心消息堆积了",
         "/mc 命令使用了 mcstatus 库来查询 Minecraft 服务器状态，而这个库曾经由 Dinnerbone 维护",
+        "如果你找到了链接转换的问题，欢迎把它通过 <code>/report_broken_links 链接 需要去除的参数等等</code> 报告给开发者！"
     ]
     import random
     response = random.choice(tips)

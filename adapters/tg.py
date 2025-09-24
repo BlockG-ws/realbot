@@ -21,6 +21,7 @@ from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
 from core.report_links import report_broken_links
+from core.self_delete import handle_self_delete
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command, handle_ping_command, \
     handle_tips_command, handle_about_command, handle_nexusmods_id
 from core.actions import handle_actions, handle_reverse_actions
@@ -79,6 +80,8 @@ class TelegramAdapter:
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text.regexp(r'(n|N) ?网尾号 ?[0-9]*'))(handle_nexusmods_id)
         router.message(F.text == '我是笨蛋')(handle_baka)
+        # 在有更为妥当的方式检查命令触发者是不是原来的触发者之前先不启用
+        #router.message(F.text == '雪豹闭嘴')(handle_self_delete)
         router.inline_query()(handle_inline_query)
         # 捕获所有其他消息
         dummy_router.message(F.chat.type.in_({'group', 'supergroup'}))(dummy_handler)

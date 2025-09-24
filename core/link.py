@@ -15,7 +15,7 @@ whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.co
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
                                             'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
-                                            'music.youtube.com','youtu.be']
+                                            'music.youtube.com','youtu.be', 'mp.weixin.qq.com']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
@@ -203,6 +203,14 @@ def reserve_whitelisted_params(url):
     elif parsed_url.hostname in ['chatglm.cn'] and query_params:
         # 就你叫智谱啊
         new_query_params = {'share_conversation_id': query_params['share_conversation_id']}
+        cleaned_query = urlencode(new_query_params, doseq=True)
+        return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif parsed_url.hostname == 'mp.weixin.qq.com' and query_params:
+        # 微信公众号文章的长链接只保留 __biz, mid, idx, sn 参数
+        new_query_params = {}
+        for param in ['__biz', 'mid', 'idx', 'sn']:
+            if param in query_params:
+                new_query_params[param] = query_params[param]
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
     return url

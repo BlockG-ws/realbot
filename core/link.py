@@ -14,7 +14,7 @@ from config import config
 whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com', 'y.music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
-                                            'www.xiaohongshu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
+                                            'www.xiaohongshu.com','www.zhihu.com','zhihu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
                                             'music.youtube.com','youtu.be', 'mp.weixin.qq.com']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
@@ -161,7 +161,7 @@ def reserve_whitelisted_params(url):
             new_query_params = {}
             cleaned_query = urlencode(new_query_params, doseq=True)
             return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com', 'zhuanlan.zhihu.com']:
+    elif parsed_url.hostname in ['www.iesdouyin.com','www.bilibili.com','m.bilibili.com','bilibili.com','mall.bilibili.com','space.bilibili.com','live.bilibili.com','item.m.jd.com','item.jd.com','www.xiaohongshu.com']:
         # 不保留任何参数
         new_query_params = {}
         if parsed_url.hostname == 'mall.bilibili.com' and query_params.get('itemsId'):
@@ -182,6 +182,11 @@ def reserve_whitelisted_params(url):
             # 我是不是也应该 f**k 小红书一下
             new_query_params = {'xsec_token': query_params['xsec_token']}
         # 重新构建URL
+        cleaned_query = urlencode(new_query_params, doseq=True)
+        return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif 'zhihu' in parsed_url.hostname and query_params:
+        # 处理知乎链接
+        new_query_params = {}
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
     elif parsed_url.hostname in ['www.baidu.com','m.youtube.com','www.youtube.com','music.youtube.com','youtu.be']:

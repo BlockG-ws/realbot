@@ -61,22 +61,34 @@ async def extend_short_urls(url):
                 if not url:
                     return url
             if r.status in [301, 302, 304, 307, 308] and 'Location' in r.headers:
-                if r.headers['Location'].startswith(('http://', 'https://')):
-                    return r.headers['Location']
+                redirect_url = r.headers['Location']
+                if redirect_url.startswith(('http://', 'https://')):
+                    if 'share.google' in redirect_url:
+                        # 修复 share.google 这种跳转多次的链接
+                        async with session.get(redirect_url, allow_redirects=True) as r_all_direct:
+                            if r_all_direct.status == 200 and r_all_direct.url != url:
+                                return str(r_all_direct.url)
+                    return redirect_url
                 else:
                     # 如果 Location 头部没有 http 前缀，可能是相对路径
                     # 需要将其转换正确的链接
-                    return urlparse(url)._replace(path=r.headers['Location']).geturl()
+                    return urlparse(url)._replace(path=redirect_url).geturl()
             elif not r.status in [200,403,404,502,503]:
                 # 对于一些需要“正常”浏览器才能访问的链接，尝试修复
                 async with session.get(url, allow_redirects=False, headers={'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.48 Safari/537.36'}) as r_fix:
                     if r_fix.status in [301, 302, 304, 307, 308] and 'Location' in r_fix.headers:
-                        if r_fix.headers['Location'].startswith(('http://', 'https://')):
-                            return r_fix.headers['Location']
+                        fixed_redirect_url = r_fix.headers['Location']
+                        if 'share.google' in fixed_redirect_url:
+                            # 修复 share.google 这种跳转多次的链接
+                            async with session.get(fixed_redirect_url, allow_redirects=True) as r_all_direct:
+                                if r_all_direct.status == 200 and r_all_direct.url != url:
+                                    return str(r_all_direct.url)
+                        if fixed_redirect_url.startswith(('http://', 'https://')):
+                            return fixed_redirect_url
                         else:
                             # 如果 Location 头部没有 http 前缀，可能是相对路径
                             # 需要将其转换正确的链接
-                            return urlparse(url)._replace(path=r_fix.headers['Location']).geturl()
+                            return urlparse(url)._replace(path=fixed_redirect_url).geturl()
     return url
 
 def extract_tb_url_from_html(html_content):

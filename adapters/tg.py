@@ -16,7 +16,7 @@ from core.middleware.rikki import RikkiMiddleware
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
-from core.link import handle_links
+from core.link import handle_tg_links
 from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
@@ -67,7 +67,7 @@ class TelegramAdapter:
         router.message(Command('post'))(handle_post_to_fedi)
         # link 模块
         router.message(Command('report_broken_links'))(report_broken_links)
-        router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_links)
+        router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_tg_links)
         # mc 模块
         router.message(Command('mc'))(handle_mc_status_command)  # 这个模块
         # unpin 模块

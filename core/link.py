@@ -8,6 +8,7 @@ import asyncio
 from urllib.parse import urlparse, parse_qsl, parse_qs, urlencode, urlunparse
 
 from aiogram.types import Message
+from nio import AsyncClient
 
 from config import config
 
@@ -275,7 +276,7 @@ async def clean_link_in_text(text):
     final_urls = [url for url in final_urls if url is not None]
     return final_urls
 
-async def handle_links(message: Message):
+async def handle_tg_links(message: Message):
     if not config.is_feature_enabled('link', message.chat.id):
         return
 
@@ -287,3 +288,25 @@ async def handle_links(message: Message):
         if final_urls:
             await message.reply(
                 f"Cleaned URL: <blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n",disable_web_page_preview=True)
+
+async def handle_matrix_links(room, event, client: AsyncClient):
+    if not config.is_feature_enabled('link', room.room_id):
+        return None
+
+    text = event.body
+    if text:
+        final_urls = await clean_link_in_text(text)
+        if final_urls:
+            await client.room_send(
+                room_id=room.room_id,
+                message_type="m.room.message",
+                content={
+                    "msgtype": "m.text",
+                    "body": f"Cleaned URL: \n\n" + "\n".join(final_urls),
+                    "m.relates_to": {
+                        "m.in_reply_to": {
+                            "event_id": event.event_id,
+                        }
+                    }
+                }
+            )

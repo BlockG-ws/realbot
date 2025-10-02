@@ -1,14 +1,13 @@
 import asyncio
-import json
 import logging
 import os
-import sys
 
 from nio import AsyncClient, MatrixRoom, RoomMessageText
 from nio.events.room_events import RoomMessageText
 from typing import Dict, Callable
 
 import config
+from core.link import handle_matrix_links
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,8 +48,6 @@ class MatrixAdapter:
 
         # Check if message starts with command prefix
         message = event.body.strip()
-        if not message.startswith('!'):
-            return
 
         # Parse command and arguments
         parts = message[1:].split(' ', 1)
@@ -66,8 +63,7 @@ class MatrixAdapter:
             except Exception as e:
                 logger.error(f"Error executing command {command}: {e}")
                 await self.send_message(room.room_id, f"Error executing command: {str(e)}")
-        else:
-            await self.send_message(room.room_id, f"Unknown command: {command}")
+        await handle_matrix_links(room, event, self.client)
 
     async def send_message(self, room_id: str, message: str):
         """Send a message to a room."""

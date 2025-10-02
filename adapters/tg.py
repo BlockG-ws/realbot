@@ -21,13 +21,12 @@ from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command
 from core.repeater import MessageRepeater
 from core.report_links import report_broken_links
-from core.self_delete import handle_self_delete
 from core.simple import handle_start_command, handle_baka, dummy_handler, handle_info_command, handle_ping_command, \
     handle_tips_command, handle_about_command, handle_nexusmods_id
 from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
 from core.middleware.stats import MessageStatsMiddleware
-from core.unpin import handle_unpin_channel_message
+from core.middleware.unpin import UnpinChannelMsgMiddleware
 from core.rikki_hit import handle_query_hit_command
 
 TOKEN = getenv("BOT_TOKEN")
@@ -38,6 +37,7 @@ class TelegramAdapter:
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
         self.hit_middleware = RikkiMiddleware()
+        self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
         self._setup_middleware()
         self._setup_handlers()
 
@@ -47,7 +47,6 @@ class TelegramAdapter:
         router = Router()
         actions_router = Router()
         repeater_router = Router()
-        unpin_router = Router()
         dummy_router = Router()
 
         # Register handlers on router
@@ -73,9 +72,9 @@ class TelegramAdapter:
         router.message(Command('mc'))(handle_mc_status_command)  # 这个模块
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
-        unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
-                    F.sender_chat.type == 'channel'))(
-            handle_unpin_channel_message)
+        #unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
+        #            F.sender_chat.type == 'channel'))(
+        #    handle_unpin_channel_message)
         # repeater 模块
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text.regexp(r'(n|N) ?网尾号 ?[0-9]*'))(handle_nexusmods_id)
@@ -91,7 +90,7 @@ class TelegramAdapter:
         actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('\\'))(handle_reverse_actions)
 
         # Include router in dispatcher
-        self.dp.include_router(unpin_router)
+        #self.dp.include_router(unpin_router)
         # 通用的路由
         self.dp.include_router(router)
         self.dp.include_router(actions_router)
@@ -104,6 +103,7 @@ class TelegramAdapter:
         """注册中间件"""
         self.dp.message.middleware(self.stats_middleware)
         self.dp.message.middleware(self.hit_middleware)
+        self.dp.message.middleware(self.channel_unpin_middleware)
 
     async def start(self):
         """Start the Telegram bot"""

@@ -1,9 +1,25 @@
 import logging
-
+from typing import Callable, Dict, Awaitable, Any
+from config import config
+from aiogram import BaseMiddleware
 from aiogram.types import Message
 
-from config import config
 
+class UnpinChannelMsgMiddleware(BaseMiddleware):
+    def __init__(self) -> None:
+        self.counter = 0
+
+    async def __call__(
+        self,
+        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+        event: Message,
+        data: Dict[str, Any]
+    ) -> Any:
+        if event.chat.type == 'supergroup':
+            if event.sender_chat and event.sender_chat.type == 'channel':
+                # Message is sent by a linked channel
+                await handle_unpin_channel_message(event)
+        return await handler(event, data)
 
 async def handle_unpin_channel_message(message: Message):
     """Handle unpinning messages from linked channels without a specific hashtag"""
@@ -22,5 +38,6 @@ async def handle_unpin_channel_message(message: Message):
         # Either no regex pattern or message doesn't match, proceed to unpin
         logging.debug('正在尝试取消频道消息的置顶')
         await message.unpin()
+        return
     except Exception as e:
         logging.error('Error unpinning message:', e)

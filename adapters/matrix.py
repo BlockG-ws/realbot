@@ -114,19 +114,7 @@ class MatrixAdapter:
             logger.error(f"Error during shutdown: {e}")
 
 
-# Example command handlers
-async def hello_command(room: MatrixRoom, event: RoomMessageText, args: str) -> str:
-    """Handle !hello command."""
-    return f"Hello {event.sender}!"
-
-
-async def echo_command(room: MatrixRoom, event: RoomMessageText, args: str) -> str:
-    """Handle !echo command."""
-    if not args:
-        return "Usage: !echo <message>"
-    return f"Echo: {args}"
-
-
+# command handlers
 async def help_command(room: MatrixRoom, event: RoomMessageText, args: str) -> str:
     """Handle !help command."""
     help_text = """
@@ -150,8 +138,6 @@ async def main():
     bot = MatrixAdapter(homeserver, user_id, token)
 
     # Register commands
-    bot.add_command("hello", hello_command)
-    bot.add_command("echo", echo_command)
     bot.add_command("help", help_command)
 
     # Start the bot with signal handling

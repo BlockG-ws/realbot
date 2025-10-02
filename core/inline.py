@@ -1,3 +1,5 @@
+import logging
+
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
 from aiogram.utils.formatting import Text, ExpandableBlockQuote
@@ -247,6 +249,52 @@ async def handle_inline_query(query: InlineQuery):
                     description=f"你到底要说啥啊"
                 ),
             ], cache_time=0)
+    if query_text.startswith("arch"):
+        arch_query = query_text.replace("arch", "",1).strip()
+        if arch_query:
+            result = [InlineQueryResultArticle(
+                    id="1",
+                    title="在 ArchWiki 上搜索",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"我建议你去 ArchWiki 搜一下 {arch_query}：\nhttps://wiki.archlinux.org/title/Special:Search?search={arch_query}&go=Go",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"发送 {arch_query} 的搜索结果页面链接"
+                )]
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://wiki.archlinux.org/rest.php/v1/search/title?q={arch_query}&limit=4") as resp:
+                    arch_data = await resp.json()
+                    if arch_data and len(arch_data['pages']) >= 0:
+                        i=2
+                        for page in arch_data['pages']:
+                            title = page['title']
+                            key = page['key']
+                            link = f"https://wiki.archlinux.org/title/{key}"
+                            result.append(InlineQueryResultArticle(
+                                id=str(i),
+                                title=f"{title}",
+                                input_message_content=InputTextMessageContent(
+                                    message_text=f'<a href="{link}">ArchWiki 上的 {title}</a>',
+                                    parse_mode=ParseMode.HTML
+                                ),
+                                description=f"由 ArchWiki 直接返回的搜索结果"
+                            ))
+                            i+=1
+            await query.answer(results=result, cache_time=3600)
+        else:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="输入搜索内容",
+                    input_message_content=InputTextMessageContent(
+                        message_text="ta 好像想让你用 Arch Wiki 搜索这个问题，但 ta 没有输入任何内容。",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description="请在 'arch' 后输入你想要在 archwiki 搜索的内容。"
+                )
+            ], cache_time=0)
+        return
     if query_text.startswith("将军"):
         # fallback support for users who forget the colon
         if not query_text.startswith('将军：'):
@@ -345,7 +393,7 @@ async def handle_inline_query(query: InlineQuery):
                 message_text=query_text,
                 parse_mode=ParseMode.MARKDOWN
             ),
-            description="search, pg, anuo, bp, 将军"
+            description="search, pg, anuo, bp, arch, 将军"
         ),
     ], cache_time=0)
     return

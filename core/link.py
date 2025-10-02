@@ -5,8 +5,8 @@ import re
 import html
 import asyncio
 
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from abp.filters import parse_filterlist
+from urllib.parse import urlparse, parse_qsl, parse_qs, urlencode, urlunparse
+
 from aiogram.types import Message
 
 from config import config
@@ -21,34 +21,10 @@ has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landian
 
 has_better_alternative_links = ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com', 'youtu.be','m.youtube.com','x.com', 'twitter.com']
 
-def matches_adb_selector(url, selector):
-    """Check if URL matches the given selector"""
-    if selector['type'] == 'url-pattern':
-        pattern = selector['value']
-        # Convert AdBlock pattern to regex
-        # ||domain/* becomes ^https?://[^/]*domain.*
-        # domain/* becomes .*domain.*
-        if pattern.startswith('||'):
-            domain_pattern = pattern[2:]
-            # Escape special regex chars except * which we'll convert to .*
-            domain_pattern = re.escape(domain_pattern).replace(r'\*', '.*')
-            regex_pattern = f"^https?://[^/]*{domain_pattern}"
-        else:
-            # Escape special regex chars except * which we'll convert to .*
-            regex_pattern = re.escape(pattern).replace(r'\*', '.*')
-
-        return bool(re.search(regex_pattern, url))
-    return False
-
-def should_remove_param(url, filter_rule):
-    """Check if parameter should be removed based on filter rule"""
-    if filter_rule.action == 'allow':
-        return False  # Allowlist rules prevent removal
-
-    if filter_rule.selector:
-        return matches_adb_selector(url, filter_rule.selector)
-
-    return True  # No selector means apply to all URLs
+# Load ClearURLs rules from JSON file
+with open('assets/clearurls.json', 'r', encoding='utf-8') as f:
+    import json
+    clearurls_rules = json.load(f)
 
 async def extend_short_urls(url):
     """ 扩展短链接 """
@@ -104,56 +80,47 @@ def extract_tb_url_from_html(html_content):
     return None
 
 
-def remove_tracking_params(url):
-    """ 移除跟踪参数 """
-    parsed_url = urlparse(url)
-    query_params = parse_qs(parsed_url.query)
+# Assume clearurls_rules is a dict loaded from the JSON
+def remove_tracking_params(url, rules):
+    parsed = urlparse(url)
+    domain = parsed.netloc.lower()
+    path = parsed.path
+    matched_rule = None
 
-    # Modified tracking_params collection
-    tracking_rules = []
+    # Find matching rule by urlPattern
+    for site, rule in rules['providers'].items():
+        if re.match(rule['urlPattern'], url):
+            matched_rule = rule
+            break
 
-    with open('assets/LegitimateURLShortener.txt', 'r', encoding='utf-8') as f:
-        for line in parse_filterlist(f):
-            if hasattr(line, 'options') and line.options:
-                for option in line.options:
-                    if option[0] == 'removeparam':
-                        tracking_rules.append(line)
-                        break  # Only add rule once even if multiple removeparam options
+    if not matched_rule or not matched_rule['rules']:
+        return url
 
-    for rule in tracking_rules:
-        if not should_remove_param(url, rule):
-            continue
+    # Remove tracking params
+    query = parse_qsl(parsed.query, keep_blank_values=False)
+    filtered_query = [
+        (k, v) for k, v in query
+        if not any(re.fullmatch(param, k) for param in matched_rule['rules'])
+    ]
 
-        for option in rule.options or []:
-            if option[0] == 'removeparam':
-                param_pattern = option[1]
-
-                if param_pattern is True:  # Remove all params
-                    query_params.clear()
-                    break
-                elif isinstance(param_pattern, str):
-                    # Handle regex patterns
-                    if param_pattern.startswith('/') and param_pattern.endswith('/'):
-                        regex_pattern = param_pattern[1:-1]
-                        params_to_remove = [
-                            param for param in query_params.keys()
-                            if re.search(regex_pattern, param)
-                        ]
-                    else:
-                        # Exact match
-                        params_to_remove = [param_pattern] if param_pattern in query_params else []
-
-                    for param in params_to_remove:
-                        query_params.pop(param, None)
     # Remove UTM parameters
     utm_params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
     for param in utm_params:
-        if param in query_params:
-            query_params.pop(param, None)
+        if param in filtered_query:
+            filtered_query.pop(param, None)
 
-    # Reconstruct URL
-    new_query = urlencode(query_params, doseq=True)
-    return urlunparse(parsed_url._replace(query=new_query))
+    new_query = urlencode(filtered_query)
+
+    cleaned_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
+
+    return cleaned_url
 
 def reserve_whitelisted_params(url):
     """ 保留白名单中的参数 """
@@ -270,7 +237,7 @@ async def process_url(url):
             # 链接没有变化，直接返回 None，避免重复处理
             return None
     # 对于其它的网站，首先清理跟踪参数
-    cleaned_url = remove_tracking_params(url)
+    cleaned_url = remove_tracking_params(url, clearurls_rules)
     # 扩展短链接
     extended_url = await extend_short_urls(cleaned_url)
     if urlparse(extended_url).hostname in ['chatglm.cn']:
@@ -288,11 +255,11 @@ async def process_url(url):
             # 链接没有变化，直接返回 None，避免重复处理
             return None
     if urlparse(extended_url).hostname in has_better_alternative_links:
-        removed_tracking_url = remove_tracking_params(extended_url)
+        removed_tracking_url = remove_tracking_params(extended_url, clearurls_rules)
         final_url = transform_into_fixed_url(removed_tracking_url)
     else:
         # 对于其他链接，直接对其进行跟踪参数清理
-        final_url = remove_tracking_params(extended_url)
+        final_url = remove_tracking_params(extended_url, clearurls_rules)
     if url != final_url:
         return final_url
     return None

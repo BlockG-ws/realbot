@@ -22,8 +22,8 @@ BOT_TOKEN="12345678:<your token>" uv run main.py
 我想做 matrix bot，不过这两天先不做了
 
 # 特别感谢
-- ➗ Actually Legitimate URL Shortener Tool 规则提供了一些链接清理的特性，他们的许可证在这里：
-    https://github.com/DandelionSprout/adfilt/blob/master/LICENSE.md
+- 链接清理的特性使用了 ClearURLs 插件提供的规则，他们的许可证在这里：
+    https://github.com/ClearURLs/Rules/blob/master/LICENSE
 
 # 许可证
 GNU General Public License v3.0

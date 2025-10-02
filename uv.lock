@@ -631,12 +631,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-abp"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/30/31c6e4ca48992ee5f4bb8325f249f944ac493898606ca83a7642ff5ee18b/python-abp-0.2.0.tar.gz", hash = "sha256:f36d0e9fdc089587c26036e0403f36d729395fc9f4dbce45baf3a493d1de8112", size = 80013, upload-time = "2020-05-20T13:09:55.536Z" }
-
-[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -706,7 +700,6 @@ dependencies = [
     { name = "matrix-nio" },
     { name = "mcstatus" },
     { name = "pangu" },
-    { name = "python-abp" },
     { name = "pyyaml" },
     { name = "requests" },
 ]
@@ -722,7 +715,6 @@ requires-dist = [
     { name = "matrix-nio", specifier = "==0.25.2" },
     { name = "mcstatus", specifier = "==12.0.2" },
     { name = "pangu", specifier = "==4.0.6.1" },
-    { name = "python-abp", specifier = "==0.2.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.4" },
 ]

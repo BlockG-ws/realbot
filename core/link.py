@@ -16,7 +16,7 @@ whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.co
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
                                             'www.xiaohongshu.com','www.zhihu.com','zhihu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
-                                            'music.youtube.com','youtu.be', 'mp.weixin.qq.com']
+                                            'music.youtube.com','youtu.be', 'mp.weixin.qq.com', 'mobile.yangkeduo.com']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
@@ -123,7 +123,7 @@ def remove_tracking_params(url, rules):
 
     return cleaned_url
 
-def reserve_whitelisted_params(url):
+async def reserve_whitelisted_params(url):
     """ 保留白名单中的参数 """
     parsed_url = urlparse(url)
     query_params = parse_qs(parsed_url.query)
@@ -185,6 +185,19 @@ def reserve_whitelisted_params(url):
         # 重新构建URL
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif 'yangkeduo.com' in parsed_url.hostname and 'goods2' in parsed_url.path:
+        # 拼夕夕商品链接
+        new_query_params = {}
+        if 'ps' in query_params:
+            pxx_full_url = await extend_short_urls(url)
+            pxx_params = parse_qs(urlparse(pxx_full_url).query)
+            new_query_params = {'goods_id': pxx_params['goods_id']}
+            cleaned_query = urlencode(new_query_params, doseq=True)
+            return urlunparse(urlparse(pxx_full_url)._replace(query=cleaned_query))
+        elif 'goods_id' in query_params:
+            new_query_params['goods_id'] = query_params['goods_id']
+            cleaned_query = urlencode(new_query_params, doseq=True)
+            return urlunparse(parsed_url._replace(query=cleaned_query))
     elif parsed_url.hostname in ['chatglm.cn'] and query_params:
         # 就你叫智谱啊
         new_query_params = {'share_conversation_id': query_params['share_conversation_id']}
@@ -229,7 +242,7 @@ async def process_url(url):
         return None
     # 对于适配的网站，直接保留白名单参数并返回
     if urlparse(url).hostname in whitelist_param_links:
-        final_url = reserve_whitelisted_params(url)
+        final_url = await reserve_whitelisted_params(url)
         if urlparse(final_url).hostname in has_better_alternative_links:
             final_url = transform_into_fixed_url(final_url)
         if url != final_url:
@@ -247,7 +260,7 @@ async def process_url(url):
             return final_url
     # 对于扩展短链接之后的适配的网站，直接保留白名单参数并返回
     if urlparse(extended_url).hostname in whitelist_param_links:
-        final_url = reserve_whitelisted_params(extended_url)
+        final_url = await reserve_whitelisted_params(extended_url)
         if urlparse(final_url).hostname in has_better_alternative_links:
             final_url = transform_into_fixed_url(final_url)
         if url != final_url:

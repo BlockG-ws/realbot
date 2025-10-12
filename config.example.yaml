@@ -43,6 +43,10 @@ features:
   unpin:
     enable: true
     regex: ''
+  # 启用欢迎新成员
+  welcome:
+    enable: false
+    message: "嘤嘤嘤"
 
 # group features settings
 # 群组 id，使用 bot api（bot 内置的 info 命令）

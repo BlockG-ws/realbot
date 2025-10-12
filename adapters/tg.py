@@ -6,7 +6,7 @@ from os import getenv
 from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, IS_NOT_MEMBER, IS_MEMBER, ChatMemberUpdatedFilter
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
@@ -28,6 +28,7 @@ from core.stats import handle_stats_command
 from core.middleware.stats import MessageStatsMiddleware
 from core.middleware.unpin import UnpinChannelMsgMiddleware
 from core.rikki_hit import handle_query_hit_command
+from core.welcome import handle_tg_welcome
 
 TOKEN = getenv("BOT_TOKEN")
 
@@ -78,6 +79,8 @@ class TelegramAdapter:
         # repeater 模块
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text.regexp(r'(n|N) ?网尾号 ?[0-9]*'))(handle_nexusmods_id)
+        # welcome 模块
+        router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))(handle_tg_welcome)
         router.message(F.text == '我是笨蛋')(handle_baka)
         # 在有更为妥当的方式检查命令触发者是不是原来的触发者之前先不启用
         #router.message(F.text == '雪豹闭嘴')(handle_self_delete)

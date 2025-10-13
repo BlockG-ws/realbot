@@ -157,6 +157,11 @@ async def reserve_whitelisted_params(url):
                 new_query_params['t'] = query_params['t']
             if 'p' in query_params:
                 new_query_params['p'] = query_params['p']
+            # 评论跳转必需参数
+            if 'comment_root_id' in query_params:
+                new_query_params['comment_root_id'] = query_params['comment_root_id']
+            if 'comment_secondary_id' in query_params:
+                new_query_params['comment_secondary_id'] = query_params['comment_secondary_id']
         if 'xiaohongshu.com' in parsed_url.hostname and 'xsec_token' in query_params:
             # 为了保证能正常访问，小红书链接保留 xsec_token 参数
             # 我是不是也应该 f**k 小红书一下

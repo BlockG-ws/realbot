@@ -15,12 +15,13 @@ from config import config
 whitelist_param_links = ['www.iesdouyin.com','item.taobao.com', 'detail.tmall.com', 'h5.m.goofish.com', 'music.163.com', 'y.music.163.com',
                                            'www.bilibili.com', 'm.bilibili.com', 'bilibili.com', 'mall.bilibili.com',
                                            'space.bilibili.com', 'live.bilibili.com','item.m.jd.com','item.jd.com',
-                                            'www.xiaohongshu.com','www.zhihu.com','zhihu.com','zhuanlan.zhihu.com','www.baidu.com','m.youtube.com','www.youtube.com',
+                                            'www.xiaohongshu.com','www.zhihu.com','zhihu.com','zhuanlan.zhihu.com','www.baidu.com',
+                                            'youtube.com','m.youtube.com','www.youtube.com',
                                             'music.youtube.com','youtu.be', 'mp.weixin.qq.com', 'mobile.yangkeduo.com']
 
 has_self_redirection_links = ['www.cnbeta.com.tw','m.cnbeta.com.tw','www.landiannews.com', 'www.bilibili.com']
 
-has_better_alternative_links = ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com', 'youtu.be','m.youtube.com','x.com', 'twitter.com']
+has_better_alternative_links = ['www.iesdouyin.com','bilibili.com', 'm.bilibili.com', 'youtube.com','youtu.be','m.youtube.com','x.com', 'twitter.com']
 
 # Load ClearURLs rules from JSON file
 with open('assets/clearurls.json', 'r', encoding='utf-8') as f:
@@ -174,14 +175,17 @@ async def reserve_whitelisted_params(url):
         new_query_params = {}
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
-    elif parsed_url.hostname in ['www.baidu.com','m.youtube.com','www.youtube.com','music.youtube.com','youtu.be']:
+    elif parsed_url.hostname in ['www.baidu.com', 'youtube.com', 'm.youtube.com','www.youtube.com','music.youtube.com','youtu.be']:
         new_query_params = {}
         if parsed_url.hostname == 'www.baidu.com' and 'wd' in query_params:
             # 百度搜索链接保留 wd 参数
             new_query_params['wd'] = query_params['wd']
-        if 'youtube.com' in parsed_url.hostname and query_params:
+        if 'youtube.com' in parsed_url.hostname:
+            # Shorts 的特殊处理
+            if 'shorts' in parsed_url.path and query_params and 't' in query_params:
+                new_query_params['t'] = query_params['t']  # 保留 t 参数
             # YouTube 视频链接保留 v 参数
-            if 'v' in query_params:
+            if query_params and 'v' in query_params:
                 new_query_params['v'] = query_params['v'] # 保留 v 参数
             if 't' in query_params:
                 new_query_params['t'] = query_params['t'] # 保留 t 参数
@@ -231,12 +235,16 @@ def transform_into_fixed_url(url):
     if parsed_url.hostname in ['www.iesdouyin.com']:
         # 把抖音分享链接转换为正常的 www.douyin.com
         return urlunparse(parsed_url._replace(netloc='www.douyin.com'))
-    if parsed_url.hostname in ['youtu.be','m.youtube.com']:
+    if parsed_url.hostname in ['youtu.be', 'm.youtube.com', 'youtube.com']:
         # 把 youtu.be 和 m.youtube.com 的链接转换为 www.youtube.com
         if parsed_url.hostname == 'youtu.be':
             # youtu.be 的链接需要把 path 的 / 替换为 v 参数
             video_id = parsed_url.path.lstrip('/')
-            return urlunparse(parsed_url._replace(netloc='www.youtube.com', path='/watch', query=urlencode({'v': video_id})))
+            return urlunparse(parsed_url._replace(netloc='www.youtube.com', path='/watch'))
+        # YouTube Shorts 转换成正常的链接
+        if 'shorts' in parsed_url.path:
+            video_id = parsed_url.path.split('/shorts/')[-1]
+            return urlunparse(parsed_url._replace(netloc='www.youtube.com', path='/watch', query=f'v={video_id}&{parsed_url.query}' if parsed_url.query else f'v={video_id}'))
         return urlunparse(parsed_url._replace(netloc='www.youtube.com'))
     return url
 

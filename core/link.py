@@ -184,13 +184,14 @@ async def reserve_whitelisted_params(url):
             # Shorts 的特殊处理
             if 'shorts' in parsed_url.path and query_params and 't' in query_params:
                 new_query_params['t'] = query_params['t']  # 保留 t 参数
-            # YouTube 视频链接保留 v 参数
-            if query_params and 'v' in query_params:
-                new_query_params['v'] = query_params['v'] # 保留 v 参数
-            if 't' in query_params:
-                new_query_params['t'] = query_params['t'] # 保留 t 参数
-            if 'list' in query_params:
-                new_query_params['list'] = query_params['list']  # 保留 list 参数
+            elif 'watch' in parsed_url.path:
+                # YouTube 视频链接保留 v 参数
+                if query_params and 'v' in query_params:
+                    new_query_params['v'] = query_params['v'] # 保留 v 参数
+                if 't' in query_params:
+                    new_query_params['t'] = query_params['t'] # 保留 t 参数
+                if 'list' in query_params:
+                    new_query_params['list'] = query_params['list']  # 保留 list 参数
         # 重新构建URL
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
@@ -240,7 +241,8 @@ def transform_into_fixed_url(url):
         if parsed_url.hostname == 'youtu.be':
             # youtu.be 的链接需要把 path 的 / 替换为 v 参数
             video_id = parsed_url.path.lstrip('/')
-            return urlunparse(parsed_url._replace(netloc='www.youtube.com', path='/watch'))
+            # fix: video_id 未传递
+            return urlunparse(parsed_url._replace(netloc='www.youtube.com', path='/watch', query=f'v={video_id}&{parsed_url.query}' if parsed_url.query else f'v={video_id}'))
         # YouTube Shorts 转换成正常的链接
         if 'shorts' in parsed_url.path:
             video_id = parsed_url.path.split('/shorts/')[-1]

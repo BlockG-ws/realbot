@@ -95,6 +95,21 @@ async def handle_inline_query(query: InlineQuery):
             )
         ], cache_time=0)
         return
+    if query_text == "gay":
+        import random
+        gayness = random.randint(1, 100)
+        await query.answer(results=[
+            InlineQueryResultArticle(
+                id="1",
+                title="🌈 How gay are you?",
+                thumbnail_url="https://equity.ubc.ca/files/2022/10/Gay_men_flag.jpg",
+                input_message_content=InputTextMessageContent(
+                    message_text=f"🌈 I am {gayness}% gay!",
+                ),
+                description="Send your gayness to the chat!"
+            )
+        ])
+        return
     """
     if query_text.startswith("你的头怎么绿绿的"):
         await query.answer(results=[

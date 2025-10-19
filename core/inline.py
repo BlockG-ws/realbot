@@ -203,6 +203,41 @@ async def handle_inline_query(query: InlineQuery):
                 )
             ], cache_time=0)
         return
+    if query_text.startswith("calc"):
+        import subprocess
+        expr = query_text.replace("calc", "", 1).strip()
+        if not expr:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title="算树",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"我不会，长大后再学习",
+                        parse_mode=None
+                    ),
+                    description=f"Powered by qalcualate!"
+                )
+            ], cache_time=0)
+        def calc(expression):
+            try:
+                q_result = subprocess.run(['qalc', expression], capture_output=True, text=True, check=True)
+                return q_result.stdout.strip()
+            except subprocess.CalledProcessError as e:
+                logging.debug("Error while calculating: %s%s", e, expression)
+                return None
+        result = calc(expr)
+        await query.answer(results=[
+            InlineQueryResultArticle(
+                id="1",
+                title="计算结果",
+                input_message_content=InputTextMessageContent(
+                    message_text=f"{result if result else "42"}",
+                    parse_mode=None
+                ),
+                description=f"这个算式的计算结果为 {result.splitlines()[-1] if result else '42'}"
+            )
+        ], cache_time=0)
+        return
     if "http" in query_text:
         # 实现清理 URL 的功能
         cleaned_links = await clean_link_in_text(query_text)

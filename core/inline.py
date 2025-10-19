@@ -1,4 +1,5 @@
 import logging
+import aiohttp
 
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
@@ -142,7 +143,7 @@ async def handle_inline_query(query: InlineQuery):
     if query_text.startswith("b23"):
         b23_query = query_text.replace("b23", "",1).strip()
         b23_resp = None
-        import aiohttp
+
         async with aiohttp.ClientSession() as session:
             # 先访问 bilibili.com 获取 cookies
             async with session.get('https://bilibili.com', headers={
@@ -301,47 +302,164 @@ async def handle_inline_query(query: InlineQuery):
             ], cache_time=0)
     if query_text.startswith("arch"):
         arch_query = query_text.replace("arch", "",1).strip()
-        if arch_query:
-            result = [InlineQueryResultArticle(
+        args = arch_query.split(" ")
+        if args:
+            arg_type = args[0]
+            arg_value = " ".join(args[1:])
+            if arg_type == 'wiki':
+                result = [InlineQueryResultArticle(
+                        id="1",
+                        title="在 ArchWiki 上搜索",
+                        input_message_content=InputTextMessageContent(
+                            message_text=f"我建议你去 ArchWiki 搜一下 {arg_value}：\nhttps://wiki.archlinux.org/title/Special:Search?search={arch_query}&go=Go",
+                            parse_mode=ParseMode.MARKDOWN
+                        ),
+                        description=f"发送 {arg_value} 的搜索结果页面链接"
+                    )]
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{arg_value}&limit=4") as resp:
+                        arch_pkgs_data = await resp.json()
+                        if arch_pkgs_data and len(arch_pkgs_data['pages']) >= 0:
+                            i=2
+                            for package in arch_pkgs_data['pages']:
+                                title = package['title']
+                                key = package['key']
+                                link = f"https://wiki.archlinux.org/title/{key}"
+                                result.append(InlineQueryResultArticle(
+                                    id=str(i),
+                                    title=f"{title}",
+                                    input_message_content=InputTextMessageContent(
+                                        message_text=f'<a href="{link}">ArchWiki 上的 {title}</a>',
+                                        parse_mode=ParseMode.HTML
+                                    ),
+                                    description=f"由 ArchWiki 直接返回的搜索结果"
+                                ))
+                                i+=1
+                await query.answer(results=result, cache_time=3600)
+            elif arg_type == 'packages' or arg_type == 'pkg' or arg_type == 'package':
+                result = [InlineQueryResultArticle(
                     id="1",
-                    title="在 ArchWiki 上搜索",
+                    title="在 Arch Linux 软件包仓库上搜索",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"我建议你去 ArchWiki 搜一下 {arch_query}：\nhttps://wiki.archlinux.org/title/Special:Search?search={arch_query}&go=Go",
+                        message_text=f"可以搜一下 {arg_value}：\nhttps://archlinux.org/packages/?q={arg_value}",
                         parse_mode=ParseMode.MARKDOWN
                     ),
-                    description=f"发送 {arch_query} 的搜索结果页面链接"
+                    description=f"发送 {arg_value} 的搜索结果页面链接"
                 )]
-            import aiohttp
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"https://wiki.archlinux.org/rest.php/v1/search/title?q={arch_query}&limit=4") as resp:
-                    arch_data = await resp.json()
-                    if arch_data and len(arch_data['pages']) >= 0:
-                        i=2
-                        for page in arch_data['pages']:
-                            title = page['title']
-                            key = page['key']
-                            link = f"https://wiki.archlinux.org/title/{key}"
-                            result.append(InlineQueryResultArticle(
-                                id=str(i),
-                                title=f"{title}",
-                                input_message_content=InputTextMessageContent(
-                                    message_text=f'<a href="{link}">ArchWiki 上的 {title}</a>',
-                                    parse_mode=ParseMode.HTML
-                                ),
-                                description=f"由 ArchWiki 直接返回的搜索结果"
-                            ))
-                            i+=1
-            await query.answer(results=result, cache_time=3600)
+                async with aiohttp.ClientSession() as session:
+                        # exact match search first (attempt to target pkgname), then partial match; merge & dedupe by pkgname
+                        exact_url = f"https://archlinux.org/packages/search/json/?name={arg_value}"
+                        # 限制结果的个数防止碰触到 telegram 限制
+                        partial_url = f"https://archlinux.org/packages/search/json/?q={arg_value}&limit=10"
+                        async with session.get(exact_url) as resp_exact:
+                            exact_data = await resp_exact.json()
+                        async with session.get(partial_url) as resp_partial:
+                            partial_data = await resp_partial.json()
+                        merged_results = []
+                        seen = set()
+                        for pkg in (exact_data.get('results', []) + partial_data.get('results', [])):
+                            pkgname = pkg.get('pkgname') or pkg.get('pkgbase') or pkg.get('name')
+                            if not pkgname or pkgname in seen:
+                                continue
+                            seen.add(pkgname)
+                            merged_results.append(pkg)
+                        arch_pkgs_data = {'results': merged_results}
+                        if arch_pkgs_data and len(arch_pkgs_data['results']) >= 0:
+                            i = 2
+                            for package in arch_pkgs_data['results']:
+                                title = package.get('title') or package.get('pkgname') or package.get('name') or ""
+                                pkgname = package.get('pkgname') or package.get('pkgbase') or title
+                                repo = package.get('repo') or package.get('repo_name') or "extra"
+                                arch_page = package.get('arch') or "x86_64"
+                                pkgver = package.get('pkgver') or package.get('version') or ""
+                                pkgrel = package.get('pkgrel') or ""
+                                pkgdesc = package.get('pkgdesc') or package.get('description') or ""
+                                url = package.get('url') or ""
+                                maintainers = package.get('maintainers') or []
+                                build_date = package.get('build_date') or package.get('last_update') or ""
+                                provides = package.get('provides') or []
+                                conflicts = package.get('conflicts') or []
+                                depends = package.get('depends') or []
+                                optdepends = package.get('optdepends') or []
+                                link = f"https://archlinux.org/packages/{repo}/{arch_page}/{pkgname}/"
+
+                                html_lines = [
+                                    f"<b>{repo}/{pkgname} {pkgver}{('-' + pkgrel) if pkgrel else ''}</b>",
+                                    f"<i>{pkgdesc}</i>" if pkgdesc else "",
+                                    f"<b>{build_date}</b>",
+                                    f"<b>Arch:</b> {arch_page}",
+                                    f"<b>URL:</b> {url}" if url else "",
+                                    f"<b>Maintainers:</b> \n {', '.join(maintainers)}" if maintainers else "",
+                                    f"<b>Provides:</b> \n {', '.join(provides)}" if provides else "",
+                                    f"<b>Conflicts:</b> \n {', '.join(conflicts)}" if conflicts else "",
+                                    f"<b>Depends:</b> \n {', '.join(depends)}" if depends else "",
+                                    f"<b>Optional Depends:</b> \n {', '.join(optdepends)}" if optdepends else "",
+                                    f'<a href="{link}">在 Arch Linux 网站上查看</a>'
+                                ]
+                                message_text = "\n".join([ln for ln in html_lines if ln])
+
+                                result.append(InlineQueryResultArticle(
+                                    id=str(i),
+                                    title=title or pkgname,
+                                    input_message_content=InputTextMessageContent(
+                                        message_text=message_text,
+                                        parse_mode=ParseMode.HTML
+                                    ),
+                                    description=f"{repo}/{arch_page} • {pkgver}{('-' + pkgrel) if pkgrel else ''}"
+                                ))
+                                i += 1
+                await query.answer(results=result, cache_time=3600)
+            elif arg_type == 'aur':
+                result = [InlineQueryResultArticle(
+                    id="1",
+                    title="在 Arch User Repository (AUR) 上搜索",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"可以搜一下 {arg_value}：\nhttps://aur.archlinux.org/packages/?O=0&K={arg_value}",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description=f"发送 {arg_value} 的搜索结果页面链接"
+                )]
+
+                from datetime import datetime, timezone
+                if arg_value:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(
+                                f"https://aur.archlinux.org/rpc/v5/search/{arg_value}") as resp:
+                            aur_pkgs_data = await resp.json()
+                            if aur_pkgs_data and aur_pkgs_data.get('results'):
+                                i = 2
+                                max_results = 9
+                                for package in aur_pkgs_data['results'][:max_results]:
+                                    name = package.get('Name', '')
+                                    version = package.get('Version', '')
+                                    description = package.get('Description', '')
+                                    maintainers = package.get('Maintainer', '')
+                                    last_updated = datetime.fromtimestamp(package.get('LastModified', ''), timezone.utc).isoformat()
+                                    source_url = package.get('URL', '')
+                                    link = f"https://aur.archlinux.org/packages/{name}/"
+
+                                    result.append(InlineQueryResultArticle(
+                                        id=str(i),
+                                        title=f"{name}",
+                                        input_message_content=InputTextMessageContent(
+                                            message_text=f'<b>{name} - {version}</b>\n<i>{description}</i>\nURL: {source_url}\nLast Updated: {last_updated}\nMaintainer: {maintainers}\nVersion: {version}\n<a href="{link}">在 AUR 网站上查看</a>',
+                                            parse_mode=ParseMode.HTML,
+                                            disable_web_page_preview=True
+                                        ),
+                                        description=f"{version}"
+                                    ))
+                                    i += 1
+                await query.answer(results=result, cache_time=3600)
         else:
             await query.answer(results=[
                 InlineQueryResultArticle(
                     id="1",
                     title="输入搜索内容",
                     input_message_content=InputTextMessageContent(
-                        message_text="ta 好像想让你用 Arch Wiki 搜索这个问题，但 ta 没有输入任何内容。",
+                        message_text="ta 好像想让你搜索这个问题，但 ta 没有输入任何内容。",
                         parse_mode=ParseMode.MARKDOWN
                     ),
-                    description="请在 'arch' 后输入你想要在 archwiki 搜索的内容。"
+                    description="请在 'arch' 后输入你想要搜索的类型以及内容。"
                 )
             ], cache_time=0)
         return

@@ -218,10 +218,10 @@ async def handle_inline_query(query: InlineQuery):
                     ),
                     description=f"Powered by qalcualate!"
                 )
-            ], cache_time=0)
+            ], cache_time=24*3600*7)
         def calc(expression):
             try:
-                q_result = subprocess.run(['qalc', expression], capture_output=True, text=True, check=True)
+                q_result = subprocess.run(['qalc', '--set', "base 10", expression], capture_output=True, text=True, check=True)
                 return q_result.stdout.strip()
             except subprocess.CalledProcessError as e:
                 logging.debug("Error while calculating: %s%s", e, expression)

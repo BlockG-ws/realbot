@@ -98,7 +98,9 @@ async def handle_inline_query(query: InlineQuery):
         return
     if query_text == "gay":
         import random
-        gayness = random.randint(1, 100)
+        # Use user ID as seed for consistent results per user
+        seed = query.from_user.id if query.from_user else 42
+        gayness = random.Random(seed).randint(1, 100)
         await query.answer(results=[
             InlineQueryResultArticle(
                 id="1",

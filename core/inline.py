@@ -109,7 +109,7 @@ async def handle_inline_query(query: InlineQuery):
                 ),
                 description="Send your gayness to the chat!"
             )
-        ])
+        ],cache_time=0)
         return
     """
     if query_text.startswith("你的头怎么绿绿的"):

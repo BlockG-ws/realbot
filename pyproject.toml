@@ -15,4 +15,5 @@ dependencies = [
     "pangu==4.0.6.1",
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
+    "tortoise-orm==0.25.1",
 ]

@@ -5,3 +5,4 @@ message_stats.json
 config.yaml
 rikki_data.json
 mc_bindings.json
+db.sqlite3

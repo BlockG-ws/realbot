@@ -12,7 +12,6 @@ from aiogram import F
 
 from core.inline import handle_inline_query
 from core.mc import handle_mc_status_command
-from core.middleware.rikki import RikkiMiddleware
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
@@ -27,7 +26,6 @@ from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
 from core.middleware.stats import MessageStatsMiddleware
 from core.middleware.unpin import UnpinChannelMsgMiddleware
-from core.rikki_hit import handle_query_hit_command
 from core.welcome import handle_tg_welcome
 
 TOKEN = getenv("BOT_TOKEN")
@@ -37,7 +35,6 @@ class TelegramAdapter:
     def __init__(self):
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
-        self.hit_middleware = RikkiMiddleware()
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
         self._setup_middleware()
         self._setup_handlers()
@@ -56,7 +53,6 @@ class TelegramAdapter:
         router.message(Command('about'))(handle_about_command)
         router.message(Command('ping'))(handle_ping_command)
         router.message(Command('tips'))(handle_tips_command)
-        router.message(Command('query_hit'))(handle_query_hit_command)
         # bitflip 模块
         router.message(Command('bitflip'))(handle_bitflip_command)
         # promote 模块
@@ -105,7 +101,6 @@ class TelegramAdapter:
     def _setup_middleware(self):
         """注册中间件"""
         self.dp.message.middleware(self.stats_middleware)
-        self.dp.message.middleware(self.hit_middleware)
         self.dp.message.middleware(self.channel_unpin_middleware)
 
     async def start(self):

@@ -71,19 +71,20 @@ async def lookup_bedrock_server(server_address):
 
 async def handle_mc_status_command(message: Message):
     """Handle the /mc command to check Minecraft server status."""
+    from adapters.db.bindings import update_mc_binding, get_mc_binding
+    chat_id = message.chat.id
+    # Load existing bindings
+    chat_bindings = await get_mc_binding(chat_id)
     args = message.text.replace('/mc', '').strip().split(' ')
-    bind_file = 'mc_bindings.json'
     if args == ['']:
-        # Load existing bindings
-        if os.path.exists(bind_file):
-            with open(bind_file, 'r', encoding='utf-8') as f:
-                bindings = json.load(f)
-        else:
-            bindings = {}
-        chat_bindings = bindings.get(str(message.chat.id), {})
-        available_types = [t for t, addr in chat_bindings.items() if addr is not None]
+        available_types = []
+        if chat_bindings:
+            if chat_bindings.get('java_server', None):
+                available_types.append('java')
+            if chat_bindings.get('bedrock_server', None):
+                available_types.append('bedrock')
         if message.chat.type in ['group', 'supergroup'] and chat_bindings and available_types:
-            server_address = chat_bindings.get(available_types[0], None)
+            server_address = chat_bindings.get('java_server' if available_types[0] == 'java' else 'bedrock_server', None)
             status_message = await message.reply('正在查询服务器状态...')
             if available_types[0] == 'java':
                 s_message = await lookup_java_server(False, server_address)
@@ -123,28 +124,7 @@ async def handle_mc_status_command(message: Message):
         if not message.chat.type in ['group', 'supergroup']:
             await message.reply("这个命令只能在群组中使用")
             return
-        bind_file = 'mc_bindings.json'
-
-        # Load existing bindings
-        if os.path.exists(bind_file):
-            with open(bind_file, 'r', encoding='utf-8') as f:
-                bindings = json.load(f)
-        else:
-            bindings = {}
-
-        # Get chat ID
-        chat_id = str(message.chat.id)
-
-        # Initialize chat binding if not exists
-        if chat_id not in bindings:
-            bindings[chat_id] = {'java': None, 'bedrock': None}
-
-        # Update the binding for the specified server type
-        bindings[chat_id][server_type] = server_address
-
-        # Save bindings back to file
-        with open(bind_file, 'w', encoding='utf-8') as f:
-            json.dump(bindings, f, ensure_ascii=False, indent=2)
+        await update_mc_binding(chat_id, server_type, server_address)
 
         await message.reply(f"已成功绑定 {server_type} 服务器: {server_address}")
         return
@@ -152,30 +132,13 @@ async def handle_mc_status_command(message: Message):
         if not message.chat.type in ['group', 'supergroup']:
             await message.reply("这个命令只能在群组中使用")
             return
-        bind_file = 'mc_bindings.json'
-
-        # Load existing bindings
-        if os.path.exists(bind_file):
-            with open(bind_file, 'r', encoding='utf-8') as f:
-                bindings = json.load(f)
-        else:
-            bindings = {}
-
-        # Get chat ID
-        chat_id = str(message.chat.id)
-
         # Initialize chat binding if not exists
-        if chat_id not in bindings:
+        if not chat_bindings:
             await message.reply("这个群组没有绑定任何服务器，请先使用 /mc bind 命令绑定服务器")
             return
 
         # Unbind the specified server type
-        if server_type in bindings[chat_id]:
-            bindings[chat_id][server_type] = None
-
-        # Save bindings back to file
-        with open(bind_file, 'w', encoding='utf-8') as f:
-            json.dump(bindings, f, ensure_ascii=False, indent=2)
+        await update_mc_binding(chat_id, server_type, None)
 
         await message.reply(f"已成功解绑 {server_type} 服务器")
         return

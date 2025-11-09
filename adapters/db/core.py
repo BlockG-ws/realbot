@@ -11,3 +11,6 @@ async def init_db():
         modules={'models': ['adapters.db.models']}
     )
     await Tortoise.generate_schemas()
+
+async def close_db():
+    await Tortoise.close_connections()

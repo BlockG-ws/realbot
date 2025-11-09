@@ -1,14 +1,58 @@
-from aiogram import BaseMiddleware
+from aiogram import BaseMiddleware, Bot
 from aiogram.types import Message
 from typing import Callable, Dict, Any, Awaitable
-import json
+
 from datetime import datetime, timedelta
+from adapters.db.stats import update_group_stats, update_user_stats, get_24h_message_stats, update_24h_message
+
+
+async def cleanup_old_messages(chat_id: int):
+    """清理超过24小时的消息记录"""
+    messages_24h = await get_24h_message_stats(chat_id)
+    if not messages_24h:
+        return
+
+    messages = messages_24h.get('messages')
+    if not messages:
+        # ensure structure exists for downstream code
+        messages_24h.setdefault('messages', [])
+        messages_24h.setdefault('messages_24h', {})
+        messages_24h.setdefault('active_users', {})
+        return
+
+    cutoff_time = datetime.now() - timedelta(hours=24)
+    cleaned_messages = []
+    for msg in messages:
+        ts = msg.get('timestamp')
+        if ts is None:
+            continue
+        try:
+            msg_time = datetime.fromisoformat(ts) if isinstance(ts, str) else datetime.fromtimestamp(float(ts))
+        except Exception:
+            # Skip messages with invalid timestamp formats
+            continue
+        if msg_time > cutoff_time:
+            cleaned_messages.append(msg)
+
+    messages_24h['messages'] = cleaned_messages
+
+    # Update message count safely
+    messages_24h.setdefault('messages_24h', {})
+    messages_24h['messages_24h']['message_count'] = len(cleaned_messages)
+
+    # Recompute active users (count messages per user), skip entries without user_id
+    active_users_dict = {}
+    for msg in cleaned_messages:
+        user_id = msg.get('user_id')
+        if user_id is None:
+            continue
+        active_users_dict[user_id] = active_users_dict.get(user_id, 0) + 1
+    messages_24h['active_users'] = active_users_dict
+    # 保存更新后的24小时消息统计到数据库
+    await update_24h_message(chat_id, messages_24h)
+
 
 class MessageStatsMiddleware(BaseMiddleware):
-    def __init__(self, stats_file: str = 'message_stats.json'):
-        self.stats_file = stats_file
-        self.stats = self.load_stats()
-
     async def __call__(
         self,
         handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
@@ -17,120 +61,39 @@ class MessageStatsMiddleware(BaseMiddleware):
     ) -> Any:
         # 只统计群组消息
         if event.chat.type in ['group', 'supergroup']:
-            chat_id = str(event.chat.id)
-            user_id = str(event.from_user.id if event.from_user else 0)
-            current_time = datetime.now().isoformat()
+            chat_id = event.chat.id
+            user_id = event.from_user.id if event.from_user else 0
 
-            # 初始化统计数据
-            if chat_id not in self.stats:
-                self.stats[chat_id] = {
-                    'total_messages': 0,
-                    'users': {},
-                    'chat_title': event.chat.title,
-                    'messages_24h': {
-                        'message_count': 0,
-                        'active_users': {},
-                        'messages': []
-                    }
-                }
-
-            if user_id not in self.stats[chat_id]['users']:
-                name = 'Unknown'
-                if event.sender_chat:
-                    if event.sender_chat.type in ['group','supergroup']:
-                        # 如果是频道/群组匿名管理员消息，使用频道名称
-                        name = f"{event.sender_chat.title} [admin]"
+            username = event.from_user.username if event.from_user else None
+            name = 'Unknown'
+            if event.sender_chat:
+                if event.sender_chat.type in ['group','supergroup']:
                     # 如果是频道/群组匿名管理员消息，使用频道名称
-                    name = f"{event.sender_chat.title} [channel]"
-                elif event.from_user:
-                    name = event.from_user.full_name
-                self.stats[chat_id]['users'][user_id] = {
-                    'message_count': 0,
-                    'xm_count': 0,
-                    'wocai_count': 0,
-                    'username': event.from_user.username if event.from_user else 'Unknown',
-                    'name': name
-                }
+                    name = f"{event.sender_chat.title} [admin]"
+                # 如果是频道/群组匿名管理员消息，使用频道名称
+                name = f"{event.sender_chat.title} [channel]"
+            elif event.from_user:
+                name = event.from_user.full_name
 
             # 更新统计
-            self.stats[chat_id]['total_messages'] += 1
-            self.stats[chat_id]['users'][user_id]['message_count'] += 1
-            self.stats[chat_id]['messages_24h']['message_count'] += 1
+            await update_group_stats(chat_id, user_id)
             # 更新活跃用户统计
-            if user_id not in self.stats[chat_id]['messages_24h']['active_users']:
-                self.stats[chat_id]['messages_24h']['active_users'][user_id] = 0
-            self.stats[chat_id]['messages_24h']['active_users'][user_id] += 1
-
-            # 添加24小时消息记录
-            message_record = {
-                'user_id': user_id,
-                'timestamp': current_time,
-                'type': 'message'
-            }
+            await update_user_stats(chat_id, user_id, username, name, attr=None)
 
             # 羡慕、我菜统计
             if event.text and any(keyword in event.text.lower() for keyword in ['xm','xmsl','羡慕','羡慕死了']):
-                if not self.stats[chat_id]['users'][user_id]['xm_count']:
-                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
-                self.stats[chat_id]['users'][user_id]['xm_count'] += 1
-                message_record['special_type'] = 'xm'
+                await update_user_stats(chat_id, user_id, username, name, attr='xm_count')
 
             if event.sticker and event.sticker.file_unique_id in ['AQADhhcAAs1rgFVy']:
-                if not self.stats[chat_id]['users'][user_id]['xm_count']:
-                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
-                self.stats[chat_id]['users'][user_id]['xm_count'] += 1
-                message_record['special_type'] = 'xm'
+                await update_user_stats(chat_id, user_id, username, name, attr='xm_count')
 
             if event.text and '我菜' in event.text:
-                if not self.stats[chat_id]['users'][user_id]['wocai_count']:
-                    self.stats[chat_id]['users'][user_id]['xm_count'] = 0
-                self.stats[chat_id]['users'][user_id]['wocai_count'] += 1
-                message_record['special_type'] = 'wocai'
+                await update_user_stats(chat_id, user_id, username, name, attr='wocai_count')
             if event.sticker and event.sticker.file_unique_id in ['AQAD6AUAAgGeUVZy']:
-                if not self.stats[chat_id]['users'][user_id]['wocai_count']:
-                    self.stats[chat_id]['users'][user_id]['wocai_count'] = 0
-                self.stats[chat_id]['users'][user_id]['wocai_count'] += 1
-                message_record['special_type'] = 'wocai'
-
-            # 添加消息记录到24小时列表
-            self.stats[chat_id]['messages_24h']['messages'].append(message_record)
+                await update_user_stats(chat_id, user_id, username, name, attr='wocai_count')
 
             # 清理超过24小时的记录
-            self.cleanup_old_messages(chat_id)
-
-            # 保存统计数据
-            self.save_stats()
+            await cleanup_old_messages(chat_id)
 
         return await handler(event, data)
 
-    def cleanup_old_messages(self, chat_id: str):
-        """清理超过24小时的消息记录"""
-        if 'messages_24h' not in self.stats[chat_id]:
-            return
-
-        cutoff_time = datetime.now() - timedelta(hours=24)
-        self.stats[chat_id]['messages_24h']['messages'] = [
-            msg for msg in self.stats[chat_id]['messages_24h']['messages']
-            if datetime.fromisoformat(msg['timestamp']) > cutoff_time
-        ]
-
-        # 更新消息计数和活跃用户列表
-        messages_24h = self.stats[chat_id]['messages_24h']['messages']
-        self.stats[chat_id]['messages_24h']['message_count'] = len(messages_24h)
-        # 重新计算活跃用户字典，统计每个用户的消息数量
-        active_users_dict = {}
-        for msg in messages_24h:
-            user_id = msg['user_id']
-            active_users_dict[user_id] = active_users_dict.get(user_id, 0) + 1
-        self.stats[chat_id]['messages_24h']['active_users'] = active_users_dict
-
-    def load_stats(self) -> dict:
-        try:
-            with open(self.stats_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
-
-    def save_stats(self):
-        with open(self.stats_file, 'w', encoding='utf-8') as f:
-            json.dump(self.stats, f, ensure_ascii=False, indent=2)

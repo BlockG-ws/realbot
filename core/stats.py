@@ -11,12 +11,8 @@ async def handle_stats_command(message: Message):
     if message.chat.type not in ['group', 'supergroup']:
         await message.reply("此命令仅在群组中可用")
         return
-    chat_id = str(message.chat.id)
-    try:
-        with open('message_stats.json', 'r', encoding='utf-8') as f:
-            stats = json.load(f).get(chat_id)
-    except (FileNotFoundError, json.JSONDecodeError):
-        stats = {}.get(chat_id)
+    from adapters.db.stats import get_group_stats
+    stats = await get_group_stats(message.chat.id)
 
     if not stats:
         await message.reply("暂无统计数据")

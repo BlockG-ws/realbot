@@ -7,6 +7,7 @@ from adapters.db.core import init_db
 from adapters.db.models import Stats, MinecraftBindings, FediSecrets, FediTokens
 import json
 
+# message_stats.json 迁移到数据库
 async def migrate_stats() -> None:
     """Migrate stats from JSON file to database"""
     try:
@@ -21,11 +22,13 @@ async def migrate_stats() -> None:
         stats_obj, created = await Stats.get_or_create(chat_id=chat_id)
         stats_obj.chat_title = stats_data.get('chat_title')
         stats_obj.total_messages = stats_data.get('total_messages', 0)
-        stats_obj.messages_24h = stats_data.get('messages_24h', {})
-        stats_obj.users = stats_data.get('users', {})
-        stats_obj.messages = stats_data.get('messages', {})
+        # 使用 json.dumps 将字典转换为 JSON 字符串，以确保不会转义
+        stats_obj.messages_24h = json.dumps(stats_data.get('messages_24h', {}),ensure_ascii=False)
+        stats_obj.users = json.dumps(stats_data.get('users', {}), ensure_ascii=False)
+        stats_obj.messages = json.dumps(stats_data.get('messages', {}),ensure_ascii=False)
         await stats_obj.save()
 
+# mc_bindings.json 迁移到数据库
 async def migrate_mc_bindings() -> None:
     """Migrate Minecraft bindings from JSON file to database"""
     try:
@@ -42,6 +45,7 @@ async def migrate_mc_bindings() -> None:
         binding_obj.bedrock_server = binding_data.get('bedrock_server')
         await binding_obj.save()
 
+# fediverse 账户的信息、客户端机密迁移到数据库
 async def migrate_fedi() -> None:
     """Migrate Fediverse secrets and client infomation from files in secrets/"""
     secrets_file_path = Path("../secrets")
@@ -89,7 +93,7 @@ async def migrate_fedi() -> None:
                             await secret_obj.save()
                             continue
 
-
+# 主迁移函数
 async def migrate() -> None:
     project_root = Path(__file__).resolve().parent.parent
     db_path = project_root / "db.sqlite3"

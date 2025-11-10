@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import uuid
 
 import aiohttp
@@ -8,8 +7,9 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import Router
-from requests import session
 
+from adapters.db.fedi import get_fedi_user_cred, update_fedi_user_cred, get_fedi_client_info, update_fedi_client_info, \
+    get_fedi_user_instance_domains, fedi_instance_is_misskey
 from config import config
 from mastodon import Mastodon
 
@@ -18,54 +18,39 @@ router = Router()
 class AuthStates(StatesGroup):
     waiting_for_token = State()
 
-def check_secrets_folder_exists() -> bool:
-    """
-    检查 secrets 文件夹是否存在
-    """
-    return os.path.exists('secrets') and os.path.isdir('secrets')
 
-def check_client_cred_exists(instance: str) -> bool:
-    """
-    检查实例的凭据文件是否存在
-    """
-    try:
-        with open(f'secrets/realbot_{instance}_clientcred.secret', 'r'):
-            return True
-    except FileNotFoundError:
-        return False
-
-def check_user_cred_exists(instance: str, userid: int) -> bool:
-    """
-    检查用户凭据文件是否存在
-    """
-    try:
-        with open(f'secrets/realbot_{instance}_{userid}_usercred.secret', 'r'):
-            return True
-    except FileNotFoundError:
-        return False
+async def check_client_cred_exists(instance: str) -> bool:
+    await get_fedi_client_info(instance)
 
 async def instance_is_misskey(instance: str) -> bool:
     """
     检查实例是否是 Misskey 实例
     """
-    try:
-        async with aiohttp.ClientSession() as client:
-            async with client.get(f"https://{instance}/api/v1/instance", headers={"Content-Type": "application/json"},
-                                   allow_redirects=False) as r:
-                if r.status != 200:
-                    return True
-                else:
-                    return False  # 如果没有异常，则不是 Misskey 实例
-    except Exception as e:
-        logging.debug(f"检查实例 {instance} 是否为 Misskey 时发生错误: {e}")
-        return True  # 如果发生异常，则认为是 Misskey 实例
+    is_misskey = await fedi_instance_is_misskey(instance)
+    if is_misskey in (True, False):
+        return is_misskey
+    # 如果数据库中没有记录，则通过请求实例信息来判断
+    else:
+        try:
+            async with aiohttp.ClientSession() as client:
+                async with client.get(f"https://{instance}/api/v1/instance", headers={"Content-Type": "application/json"},
+                                       allow_redirects=False) as r:
+                    if r.status != 200:
+                        await update_fedi_client_info(instance, True, '', '')
+                        return True
+                    else:
+                        await update_fedi_client_info(instance, False, '', '')
+                        return False  # 如果没有异常，则不是 Misskey 实例
+        except Exception as e:
+            logging.debug(f"检查实例 {instance} 是否为 Misskey 时发生错误: {e}")
 
-async def handle_token(instance,mastodon, message: Message):
-    mastodon.log_in(
+async def handle_token(instance, mastodon, message: Message):
+    access_token = mastodon.log_in(
         code=message.text,
-        to_file=f"secrets/realbot_{instance}_{message.from_user.id}_usercred.secret",
         scopes=['read:accounts', 'read:statuses', 'write:media', 'write:statuses']
     )
+    # 保存用户凭据
+    await update_fedi_user_cred(instance, message.from_user.id, access_token)
 
 async def handle_auth(message: Message, state: FSMContext):
     """
@@ -84,27 +69,23 @@ async def handle_auth(message: Message, state: FSMContext):
     session_id = uuid.uuid4()
     if not check_client_cred_exists(instance):
         if not await instance_is_misskey(instance):
-            # 如果是 Misskey 实例，使用不同的创建应用方式
             try:
-                if not check_secrets_folder_exists():
-                    os.mkdir('secrets')
-                Mastodon.create_app(
+                client_id, client_secret = Mastodon.create_app(
                     'realbot',
                     api_base_url='https://{}'.format(instance),
-                    to_file='secrets/realbot_{}_clientcred.secret'.format(instance),
                     scopes=['read:accounts', 'read:statuses','write:media','write:statuses']
                 )
+                await update_fedi_client_info(instance, False, client_id, client_secret)
             except Exception as e:
                 logging.warning(e)
                 await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Mastodon API。')
                 return
-            mastodon = Mastodon(client_id=f'secrets/realbot_{instance}_clientcred.secret')
+            client_id, client_secret = await get_fedi_client_info(instance)
+            mastodon = Mastodon(client_id,client_secret,api_base_url='https://{}'.format(instance))
             auth_url = mastodon.auth_request_url()
         else:
             # 如果是 Misskey 实例，使用不同的创建应用方式
             try:
-                if not check_secrets_folder_exists():
-                    os.mkdir('secrets')
                 auth_url = f'https://{instance}/miauth/{session_id}?name=realbot&permission=read:account,write:notes,write:drive'
             except Exception as e:
                 logging.warning(e)
@@ -123,22 +104,22 @@ async def handle_token_reply(message: Message, state: FSMContext):
     instance = data.get('instance')
     session_id = data.get('session')
     if not await instance_is_misskey(instance):
-        mastodon = Mastodon(client_id=f'secrets/realbot_{instance}_clientcred.secret')
+        client_id, client_secret = await get_fedi_client_info(instance)
+        mastodon = Mastodon(client_id,client_secret)
         status = await message.reply('正在处理身份验证，请稍候...')
         await handle_token(instance,mastodon,message)
         await status.edit_text('身份验证成功！\n现在你可以使用 /post 命令将消息发布到联邦网络。')
     else:
         status = await message.reply('正在处理身份验证，请稍候...')
         misskey_check_url = f'https://{instance}/api/miauth/{session_id}/check'
-        logging.debug(misskey_check_url)
         async with aiohttp.ClientSession() as client:
             async with client.post(misskey_check_url, data="", headers={"Accept":"*/*"},allow_redirects=False) as r:
                 if r.status == 200:
                     data = await r.json()
-                    if data['token']:
+                    token = data.get('token','')
+                    if token:
                         # 保存用户凭据
-                        with open(f'secrets/realbot_{instance}_{message.from_user.id}_usercred.secret', 'w') as f:
-                            f.write(data['token'])
+                        await update_fedi_user_cred(instance, message.from_user.id, token)
                         await status.edit_text('身份验证成功！\n现在你可以使用 /post 命令将消息发布到联邦网络。')
                 else:
                     await status.edit_text('身份验证失败，请确保实例域名正确并且实例支持 Misskey API。\n以下的信息可能有助于诊断问题：\n{}'.format(await r.text()))
@@ -158,12 +139,8 @@ async def handle_post_to_fedi(message: Message):
     user_id = message.from_user.id
 
     # 查找用户绑定的实例
-    import glob
-
-    user_cred_pattern = f'secrets/realbot_*_{user_id}_usercred.secret'
-    user_cred_files = glob.glob(user_cred_pattern)
-
-    if not user_cred_files:
+    user_creds = await get_fedi_user_instance_domains(user_id)
+    if not user_creds:
         await message.reply('请先使用 /fauth 命令进行身份验证')
         return
     arguments = message.text.replace('/post', '', 1).strip().split(' ')
@@ -173,8 +150,8 @@ async def handle_post_to_fedi(message: Message):
         # 检查第一个参数是否是实例名
         first_arg = arguments[0]
         # 检查是否存在对应的凭据文件
-        matching_files = [f for f in user_cred_files if first_arg in f]
-        if matching_files:
+        matching_creds = await get_fedi_user_cred(first_arg, user_id)
+        if matching_creds:
             specified_instance = first_arg
             if len(arguments) >= 2:
                 visibility = arguments[1]
@@ -182,22 +159,16 @@ async def handle_post_to_fedi(message: Message):
             visibility = arguments[0]
     # 如果指定了实例，使用指定的实例
     if specified_instance:
-        cred_file = next(f for f in user_cred_files if specified_instance in f)
-        filename = os.path.basename(cred_file)
-        parts = filename.split('_')
-        instance = '_'.join(parts[1:-2])
+        instance = specified_instance
     else:
         # 如果有多个实例，让用户选择
-        if len(user_cred_files) > 1:
+        if user_creds and len(user_creds) > 1:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
             # 提取所有实例名
             instances = []
-            for cred_file in user_cred_files:
-                filename = os.path.basename(cred_file)
-                parts = filename.split('_')
-                instance_name = '_'.join(parts[1:-2])
-                instances.append(instance_name)
+            for cred in user_creds:
+                instances.append(cred)
 
 
             # 创建选择按钮
@@ -219,13 +190,13 @@ async def handle_post_to_fedi(message: Message):
             return
         else:
             # 只有一个实例，直接使用
-            cred_file = user_cred_files[0]
-            filename = os.path.basename(cred_file)
-            parts = filename.split('_')
-            instance = '_'.join(parts[1:-2])
+            instance = user_creds[0]
 
+    access_token = await get_fedi_user_cred(instance, user_id)
+    client_id, client_secret = await get_fedi_client_info(instance)
     mastodon = Mastodon(
-        access_token=f'{cred_file}',
+        access_token=access_token,
+        client_id=client_id,client_secret=client_secret,
         api_base_url=f'https://{instance}'
     )
 
@@ -247,9 +218,7 @@ async def handle_post_to_fedi(message: Message):
                 media_ids.append(media['id'])
             else:
                 misskey_upload_drive_url = f"https://{instance}/api/drive/files/create"
-                token = ''
-                with open(f'secrets/realbot_{instance}_{message.from_user.id}_usercred.secret', 'r') as f:
-                    token = f.read()
+                token = access_token
 
                 file_info = await message.bot.get_file(photo.file_id)
                 file_data = await message.bot.download_file(file_info.file_path)
@@ -280,9 +249,7 @@ async def handle_post_to_fedi(message: Message):
         else:
             # 对于 Misskey 实例，使用不同的发布方式
             misskey_create_status_url = f'https://{instance}/api/notes/create'
-            token = ''
-            with open(f'secrets/realbot_{instance}_{message.from_user.id}_usercred.secret', 'r') as f:
-                token = f.read()
+            token = access_token
             data = {}
             if token and media_ids:
                 data = json.dumps({
@@ -330,7 +297,9 @@ async def handle_instance_selection(callback: CallbackQuery):
     user_id = callback.from_user.id
 
     mastodon = Mastodon(
-        access_token=f'secrets/realbot_{selected_instance}_{user_id}_usercred.secret',
+        access_token=await get_fedi_user_cred(selected_instance, user_id),
+        client_id=(await get_fedi_client_info(selected_instance))['client_id'],
+        client_secret=(await get_fedi_client_info(selected_instance))['client_secret'],
         api_base_url=f'https://{selected_instance}'
     )
 

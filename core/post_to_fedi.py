@@ -38,14 +38,20 @@ async def instance_is_misskey(instance: str) -> bool:
     else:
         try:
             async with aiohttp.ClientSession() as client:
-                async with client.get(f"https://{instance}/api/v1/instance", headers={"Content-Type": "application/json"},
+                # 获取实例的 NodeInfo 信息，以确定其软件类型
+                async with client.get(f"https://{instance}/.well-known/nodeinfo", headers={"Content-Type": "application/json"},
                                        allow_redirects=False) as r:
-                    if r.status != 200:
+                    nodeinfo_path = (await r.json()).get('links', [])[0].get('href', '')
+                async with client.get(nodeinfo_path, headers={"Content-Type": "application/json"},
+                                       allow_redirects=False) as r:
+                    data = await r.json()
+                    software_name = data.get('software', {}).get('name', '').lower()
+                    if software_name in ['misskey', 'sharkey', 'firefish']:
                         await update_fedi_client_info(instance, True, '', '')
                         return True
                     else:
                         await update_fedi_client_info(instance, False, '', '')
-                        return False  # 如果没有异常，则不是 Misskey 实例
+                        return False  # 如果不是，则不是 Misskey 实例
         except Exception as e:
             logging.debug(f"检查实例 {instance} 是否为 Misskey 时发生错误: {e}")
             return False

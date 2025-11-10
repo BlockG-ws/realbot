@@ -20,7 +20,12 @@ class AuthStates(StatesGroup):
 
 
 async def check_client_cred_exists(instance: str) -> bool:
-    return bool(await get_fedi_client_info(instance))
+    client_id = (await get_fedi_client_info(instance)).get('client_id', '')
+    client_secret = (await get_fedi_client_info(instance)).get('client_secret', '')
+    if client_id and client_secret:
+        return True
+    else:
+        return False
 
 async def instance_is_misskey(instance: str) -> bool:
     """
@@ -48,7 +53,8 @@ async def instance_is_misskey(instance: str) -> bool:
 async def handle_token(instance, mastodon, message: Message):
     access_token = mastodon.log_in(
         code=message.text,
-        scopes=['read:accounts', 'read:statuses', 'write:media', 'write:statuses']
+        scopes=['read:accounts', 'read:statuses', 'write:media', 'write:statuses'],
+        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
     )
     # 保存用户凭据
     await update_fedi_user_cred(instance, message.from_user.id, access_token)
@@ -82,7 +88,8 @@ async def handle_auth(message: Message, state: FSMContext):
                 logging.warning(e)
                 await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Mastodon API。')
                 return
-        client_id, client_secret = await get_fedi_client_info(instance)
+        client_id = (await get_fedi_client_info(instance))['client_id']
+        client_secret = (await get_fedi_client_info(instance))['client_secret']
         mastodon = Mastodon(client_id,client_secret,api_base_url='https://{}'.format(instance))
         auth_url = mastodon.auth_request_url()
     else:
@@ -106,11 +113,16 @@ async def handle_token_reply(message: Message, state: FSMContext):
     instance = data.get('instance')
     session_id = data.get('session')
     if not await instance_is_misskey(instance):
-        client_id, client_secret = await get_fedi_client_info(instance)
-        mastodon = Mastodon(client_id,client_secret)
+        client_id = (await get_fedi_client_info(instance))['client_id']
+        client_secret = (await get_fedi_client_info(instance))['client_secret']
+        mastodon = Mastodon(client_id,client_secret,api_base_url='https://{}'.format(instance))
         status = await message.reply('正在处理身份验证，请稍候...')
-        await handle_token(instance,mastodon,message)
-        await status.edit_text('身份验证成功！\n现在你可以使用 /post 命令将消息发布到联邦网络。')
+        try:
+            await handle_token(instance,mastodon,message)
+            await status.edit_text('身份验证成功！\n现在你可以使用 /post 命令将消息发布到联邦网络。')
+        except Exception as e:
+            logging.warning('Error during Mastodon auth:', exc_info=e)
+            await status.edit_text('身份验证失败，请确保实例域名正确并且实例支持 Mastodon API。\n错误信息: {}'.format(str(e)))
     else:
         status = await message.reply('正在处理身份验证，请稍候...')
         misskey_check_url = f'https://{instance}/api/miauth/{session_id}/check'
@@ -195,7 +207,8 @@ async def handle_post_to_fedi(message: Message):
             instance = user_creds[0]
 
     access_token = await get_fedi_user_cred(instance, user_id)
-    client_id, client_secret = await get_fedi_client_info(instance)
+    client_id = (await get_fedi_client_info(instance))['client_id']
+    client_secret = (await get_fedi_client_info(instance))['client_secret']
     mastodon = Mastodon(
         access_token=access_token,
         client_id=client_id,client_secret=client_secret,

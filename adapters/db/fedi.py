@@ -7,12 +7,8 @@ async def fedi_instance_is_misskey(instance_domain: str) -> bool | None:
 
 async def get_fedi_client_info(instance_domain: str) -> dict:
     """Retrieve Fediverse instance client info by instance_domain."""
-    client_id, client_secret = await FediClients.get_or_none(instance_domain=instance_domain).values_list(
-        "client_id", "client_secret")
-    return {
-        "client_id": client_id,
-        "client_secret": client_secret
-    }
+    client_auth = await FediClients.get_or_none(instance_domain=instance_domain).values("client_id", "client_secret")
+    return client_auth
 
 async def get_fedi_user_instance_domains(user_id: int) -> list[str]:
     """Retrieve all Fediverse instance domains associated with a user_id."""

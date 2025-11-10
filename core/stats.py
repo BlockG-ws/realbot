@@ -1,5 +1,4 @@
 from aiogram.types import Message
-import json
 
 from config import config
 

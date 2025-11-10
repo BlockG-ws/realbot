@@ -2,8 +2,6 @@ import asyncio
 import os
 from pathlib import Path
 from tortoise import Tortoise
-
-from adapters.db.core import init_db
 from adapters.db.models import Stats, MinecraftBindings, FediSecrets, FediTokens
 import json
 

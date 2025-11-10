@@ -1,6 +1,4 @@
 import logging
-import json
-import os
 
 from aiogram.enums import ParseMode
 from aiogram.types import Message

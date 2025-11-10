@@ -1,9 +1,3 @@
-import asyncio
-import json
-
-from tortoise import Tortoise
-from tortoise.expressions import F
-
 from adapters.db.models import Stats
 
 async def get_group_stats(chat_id: int) -> dict[str, dict]:

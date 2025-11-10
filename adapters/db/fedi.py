@@ -3,11 +3,12 @@ from adapters.db.models import FediUserTokens, FediClients
 async def fedi_instance_is_misskey(instance_domain: str) -> bool | None:
     """Retrieve Fediverse instance client info by instance_domain."""
     is_misskey = await FediClients.get_or_none(instance_domain=instance_domain).values("is_misskey")
-    return is_misskey[0] if is_misskey else None
+    return is_misskey['is_misskey'] if is_misskey else None
 
 async def get_fedi_client_info(instance_domain: str) -> dict:
     """Retrieve Fediverse instance client info by instance_domain."""
-    client_id, client_secret = await FediClients.get_or_none(instance_domain=instance_domain).values("client_id", "client_secret")
+    client_id, client_secret = await FediClients.get_or_none(instance_domain=instance_domain).values_list(
+        "client_id", "client_secret")
     return {
         "client_id": client_id,
         "client_secret": client_secret

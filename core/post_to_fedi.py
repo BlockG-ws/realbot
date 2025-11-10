@@ -20,14 +20,14 @@ class AuthStates(StatesGroup):
 
 
 async def check_client_cred_exists(instance: str) -> bool:
-    await get_fedi_client_info(instance)
+    return bool(await get_fedi_client_info(instance))
 
 async def instance_is_misskey(instance: str) -> bool:
     """
     检查实例是否是 Misskey 实例
     """
     is_misskey = await fedi_instance_is_misskey(instance)
-    if is_misskey in (True, False):
+    if isinstance(is_misskey, bool):
         return is_misskey
     # 如果数据库中没有记录，则通过请求实例信息来判断
     else:
@@ -43,6 +43,7 @@ async def instance_is_misskey(instance: str) -> bool:
                         return False  # 如果没有异常，则不是 Misskey 实例
         except Exception as e:
             logging.debug(f"检查实例 {instance} 是否为 Misskey 时发生错误: {e}")
+            return False
 
 async def handle_token(instance, mastodon, message: Message):
     access_token = mastodon.log_in(
@@ -67,8 +68,9 @@ async def handle_auth(message: Message, state: FSMContext):
         return
     auth_url = ''
     session_id = uuid.uuid4()
-    if not check_client_cred_exists(instance):
-        if not await instance_is_misskey(instance):
+    if not await instance_is_misskey(instance):
+        # 如果是 Mastodon 实例，检查客户端凭据是否存在
+        if not await check_client_cred_exists(instance):
             try:
                 client_id, client_secret = Mastodon.create_app(
                     'realbot',
@@ -80,17 +82,17 @@ async def handle_auth(message: Message, state: FSMContext):
                 logging.warning(e)
                 await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Mastodon API。')
                 return
-            client_id, client_secret = await get_fedi_client_info(instance)
-            mastodon = Mastodon(client_id,client_secret,api_base_url='https://{}'.format(instance))
-            auth_url = mastodon.auth_request_url()
-        else:
-            # 如果是 Misskey 实例，使用不同的创建应用方式
-            try:
-                auth_url = f'https://{instance}/miauth/{session_id}?name=realbot&permission=read:account,write:notes,write:drive'
-            except Exception as e:
-                logging.warning(e)
-                await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Misskey API。')
-                return
+        client_id, client_secret = await get_fedi_client_info(instance)
+        mastodon = Mastodon(client_id,client_secret,api_base_url='https://{}'.format(instance))
+        auth_url = mastodon.auth_request_url()
+    else:
+        # 如果是 Misskey 实例，使用不同的创建应用方式
+        try:
+            auth_url = f'https://{instance}/miauth/{session_id}?name=realbot&permission=read:account,write:notes,write:drive'
+        except Exception as e:
+            logging.warning(e)
+            await message.reply(f'创建应用失败：{str(e)}\n请确保实例域名正确并且实例支持 Misskey API。')
+            return
 
     await message.reply('请在浏览器中打开链接进行身份验证：\n{}\n验证完成后，请用得到的 token 回复这条消息。\n注意：对于使用 Akkoma 的用户，可能需要验证两次。对于使用 misskey 的用户，请任意输入文本。'.format(auth_url))
     # 在发送消息后设置状态

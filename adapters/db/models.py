@@ -24,7 +24,7 @@ class Config(models.Model):
     class Meta:
         table = "config"
 
-class FediSecrets(models.Model):
+class FediClients(models.Model):
     instance_domain = fields.CharField(max_length=255,unique=True)
     is_misskey = fields.BooleanField(default=False)
     client_id = fields.CharField(max_length=255)
@@ -32,7 +32,7 @@ class FediSecrets(models.Model):
     class Meta:
         table = "fedi_clients"
 
-class FediTokens(models.Model):
+class FediUserTokens(models.Model):
     user_id = fields.BigIntField(index=True)
     instance_domain = fields.CharField(max_length=255)
     access_token = fields.CharField(max_length=1024)

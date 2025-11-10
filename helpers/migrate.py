@@ -2,7 +2,7 @@ import asyncio
 import os
 from pathlib import Path
 from tortoise import Tortoise
-from adapters.db.models import Stats, MinecraftBindings, FediSecrets, FediTokens
+from adapters.db.models import Stats, MinecraftBindings, FediClients, FediUserTokens
 import json
 
 # message_stats.json 迁移到数据库
@@ -67,7 +67,7 @@ async def migrate_fedi() -> None:
                             except Exception:
                                 print(f"Failed to read ` {secret_file} `")
                                 continue
-                            token_obj, _ = await FediTokens.get_or_create(instance_domain=instance, user_id=user_id, access_token=access_token)
+                            token_obj, _ = await FediUserTokens.get_or_create(instance_domain=instance, user_id=user_id, access_token=access_token)
                             token_obj.access_token = access_token
                             await token_obj.save()
                             continue
@@ -82,7 +82,7 @@ async def migrate_fedi() -> None:
                             except Exception:
                                 print(f"Failed to read ` {secret_file} `")
                                 continue
-                            secret_obj, _ = await FediSecrets.get_or_create(
+                            secret_obj, _ = await FediClients.get_or_create(
                                 instance_domain=instance,
                                 defaults={'client_id': client_id, 'client_secret': client_secret}
                             )

@@ -11,7 +11,7 @@ on:
 env:
   # ghcr.io 上的镜像名称
   # 格式为：ghcr.io/OWNER/REPO_NAME
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+  IMAGE_NAME: ghcr.io/blockg-ws/${{ github.event.repository.name }}
 
 # 3. 定义工作流中的任务
 jobs:

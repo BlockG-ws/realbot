@@ -49,8 +49,5 @@ jobs:
           file: ./Dockerfile # Dockerfile 的路径
           push: true # 推送到镜像仓库
           tags: |
-            # 为镜像生成两个标签：
-            # 1. latest 标签
             ${{ env.IMAGE_NAME }}:latest
-            # 2. 基于 Git commit SHA 的唯一标签
             ${{ env.IMAGE_NAME }}:${{ github.sha }}

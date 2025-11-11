@@ -1,9 +1,11 @@
 import logging
+import urllib.parse
+
 import aiohttp
 
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
-from aiogram.utils.formatting import Text, ExpandableBlockQuote
+from aiogram.utils.formatting import Text, ExpandableBlockQuote, TextLink
 
 from core.link import clean_link_in_text
 
@@ -33,13 +35,17 @@ async def handle_inline_query(query: InlineQuery):
     if query_text.startswith("search"):
         search_query = query_text.replace("search", "",1).strip()
         if search_query:
+            # 使用 urllib.parse.quote 来对查询进行 URL 编码，防止特殊字符导致链接无效
+            ddg_html = TextLink(f"用 DuckDuckGo 搜一下 {search_query}",url=f"https://duckduckgo.com/?q={urllib.parse.quote(search_query)}")
+            google_html = TextLink(f"用 Google 搜一下 {search_query}",url=f"https://www.google.com/search?q={urllib.parse.quote(search_query)}")
             await query.answer(results=[
                 InlineQueryResultArticle(
                     id="1",
                     title="丢一个 DuckDuckGo 的搜索结果",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"我建议你用 [DuckDuckGo 搜一下 {search_query}](https://duckduckgo.com/?q={search_query})",
-                        parse_mode=ParseMode.MARKDOWN
+                        # 使用 TextLink 来创建带有链接的文本，避免手动转义
+                        message_text=f"我建议你{ddg_html.as_html()}",
+                        parse_mode=ParseMode.HTML
                     ),
                     description=f"在 DuckDuckGo 上搜索 {search_query}"
                 ),
@@ -47,8 +53,8 @@ async def handle_inline_query(query: InlineQuery):
                     id="2",
                     title="丢一个 Google 的搜索结果",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"我建议你用 [Google 搜一下 {search_query}](https://www.google.com/search?q={search_query})",
-                        parse_mode=ParseMode.MARKDOWN
+                        message_text=f"我建议你{google_html.as_html()}",
+                        parse_mode=ParseMode.HTML
                     ),
                     description=f"在 Google 上搜索 {search_query}"
                 )

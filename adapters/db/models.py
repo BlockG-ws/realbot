@@ -41,11 +41,15 @@ class FediUserTokens(models.Model):
         unique_together = (("user_id", "instance_domain"),)
 
 class Lottery(models.Model):
-    id = fields.CharField(max_length=255,pk=True)
     chat_id = fields.BigIntField(index=True)
+    type = fields.CharField(max_length=50)
+    winner_count = fields.IntField(default=1)
+    max_participants = fields.IntField(default=1)
+    end_time = fields.DatetimeField(null=True)
     title = fields.CharField(max_length=1024)
     description = fields.TextField(null=True)
     participants = fields.JSONField(null=True,default=list)
+    winners = fields.JSONField(null=True,default=list)
     is_ended = fields.BooleanField(default=False)
 
     class Meta:

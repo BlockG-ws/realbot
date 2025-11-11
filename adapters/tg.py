@@ -11,6 +11,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
 from core.inline import handle_inline_query
+from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
 from core.post_to_fedi import router as fedi_router
 
@@ -66,7 +67,9 @@ class TelegramAdapter:
         router.message(Command('report_broken_links'))(report_broken_links)
         router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_tg_links)
         # mc 模块
-        router.message(Command('mc'))(handle_mc_status_command)  # 这个模块
+        router.message(Command('mc'))(handle_mc_status_command)
+        # 抽奖模块
+        router.message(Command('lottery'))(handle_lottery_command)
         # unpin 模块
         # 不知道为什么检测不到频道的消息被置顶这个事件，暂时认为所有的频道消息都是被置顶的
         #unpin_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & (
@@ -95,6 +98,7 @@ class TelegramAdapter:
         self.dp.include_router(actions_router)
         # 处理联邦宇宙认证相关
         self.dp.include_router(fedi_router)
+        self.dp.include_router(lottery_router)
         self.dp.include_router(repeater_router)
         self.dp.include_router(dummy_router)
 

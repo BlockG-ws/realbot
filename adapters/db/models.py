@@ -44,7 +44,7 @@ class Lottery(models.Model):
     chat_id = fields.BigIntField(index=True)
     type = fields.CharField(max_length=50)
     winner_count = fields.IntField(default=1)
-    max_participants = fields.IntField(default=1)
+    max_participants = fields.IntField(null=True)
     end_time = fields.DatetimeField(null=True)
     title = fields.CharField(max_length=1024)
     description = fields.TextField(null=True)

@@ -6,6 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiodns==3.5.0",
     "aiogram==3.21.0",
+    "apscheduler==3.11.1",
     "dulwich==0.24.1",
     "emoji==2.14.1",
     "jieba>=0.42.1",

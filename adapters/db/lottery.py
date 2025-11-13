@@ -13,6 +13,11 @@ async def get_lottery_info(lottery_id: int, chat_id: int) -> dict:
     lottery = await Lottery.filter(chat_id=chat_id,id=lottery_id).values()
     return lottery[0] or {}
 
+async def get_all_unended_lotteries() -> list[dict]:
+    """Retrieve all unended lotteries."""
+    lotteries = await Lottery.filter(is_ended=False).values()
+    return lotteries
+
 async def update_lottery_info(chat_id: int, lottery_id: int,lottery_data: dict) -> None:
     """Update lottery information for a specific chat_id."""
     lottery = await Lottery.get_or_none(chat_id=chat_id,id=lottery_id)

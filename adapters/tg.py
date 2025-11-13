@@ -10,6 +10,7 @@ from aiogram.filters import CommandStart, Command, IS_NOT_MEMBER, IS_MEMBER, Cha
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
+from adapters.scheduler.core import get_all_unended_jobs, Scheduler
 from core.inline import handle_inline_query
 from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
@@ -33,12 +34,31 @@ TOKEN = getenv("BOT_TOKEN")
 
 
 class TelegramAdapter:
+    bot = None
     def __init__(self):
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
         self._setup_middleware()
         self._setup_handlers()
+        session = None
+        if getenv("HTTPS_PROXY"):
+            session = AiohttpSession(proxy=getenv("HTTPS_PROXY"))
+        self.bot = Bot(
+            token=TOKEN,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+            session=session
+        )
+        self.__class__.bot = self.bot
+
+    async def _on_startup(self):
+        """Run tasks after bot has started."""
+        pending = await get_all_unended_jobs()
+        Scheduler().start()
+        if pending:
+            logging.info("Recovering jobs...")
+            from adapters.scheduler.lottery import recover_lottery_jobs
+            await recover_lottery_jobs()
 
     def _setup_handlers(self):
         """Register handlers with core module functions"""
@@ -91,6 +111,7 @@ class TelegramAdapter:
         actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('/'))(handle_actions)
         actions_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.text.startswith('\\'))(handle_reverse_actions)
 
+
         # Include router in dispatcher
         #self.dp.include_router(unpin_router)
         # 通用的路由
@@ -109,17 +130,9 @@ class TelegramAdapter:
 
     async def start(self):
         """Start the Telegram bot"""
-        session = None
-        if getenv("HTTPS_PROXY"):
-            session = AiohttpSession(proxy=getenv("HTTPS_PROXY"))
-
-        bot = Bot(
-            token=TOKEN,
-            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-            session=session
-        )
-
-        await self.dp.start_polling(bot)
+        # Register startup tasks
+        self.dp.startup.register(self._on_startup)
+        await self.dp.start_polling(self.bot)
 
 
 async def main() -> None:

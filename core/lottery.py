@@ -4,8 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup
-
-from helpers.rand import choose_random_winners
+from aiogram.utils.formatting import Bold
 
 router = Router()
 
@@ -30,12 +29,19 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
     lottery = await get_lottery_info(chat_id=chat_id, lottery_id=lottery_id)
     participants = lottery.get('participants', [])
     winner_count = lottery.get('winner_count', 1)
+    title = lottery.get('title', '抽奖活动')
+    from helpers.rand import choose_random_winners
     winners_info = await choose_random_winners(participants=participants, number_of_winners=winner_count)
     winners = [str(w) for w in winners_info.get('winners', [])]
+
     await bot.send_message(chat_id=chat_id, text="抽奖活动达到了参与人数上限，正在开奖...")
+
+    # 发送获奖者名单
+    # TODO: 添加复现条件
     await bot.send_message(
         chat_id=chat_id,
-        text= "🎉 抽奖活动结束！ 🎉\n\n"
+        text= "🎉 抽奖活动结束！ 🎉\n\n" +
+              Bold(title).as_html() +
               "获奖者名单：\n" +
               ", ".join(winners) + "\n\n" +
               "本抽奖基于 <a href=\"https://drand.love\">drand</a> 的第{round}次随机种子：{seed}\n"
@@ -44,7 +50,13 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
                   round=winners_info['round'],
               )
     )
+
+    # 标记抽奖为结束状态
     await end_lottery(chat_id=chat_id, lottery_id=lottery_id)
+
+    # 更新数据库中的获奖者信息
+    from adapters.db.lottery import update_lottery_info
+    await update_lottery_info(chat_id=chat_id, lottery_id=lottery_id, lottery_data={'winners': winners_info['winners']})
 
 
 @router.message(LotteryForm.title)
@@ -72,7 +84,7 @@ async def handle_lottery_number_of_winners(message: Message, state: FSMContext):
         return
     await state.update_data(number_of_winners=number_of_winners)
     await message.reply("获奖人数已设置为：{}".format(number_of_winners))
-    await message.reply("请选择开奖触发条件：\n1. 固定时间结束（目前尚不可用）\n2. 达到参与人数上限\n",
+    await message.reply("请选择开奖触发条件：\n1. 固定时间结束\n2. 达到参与人数上限\n",
                         reply_markup=ReplyKeyboardMarkup(
                             keyboard=[
                                 [
@@ -123,8 +135,10 @@ async def handle_lottery_end_time(message: Message, state: FSMContext):
         return
 
     await message.reply("抽奖结束时间已设置为：{}".format(end_time.strftime("%Y-%m-%d %H:%M:%S")))
-    await state.update_data(end_time=message.text)
+    await state.update_data(end_time=end_time.isoformat())
     await state.set_state(LotteryForm.send_to_chat)
+    await message.reply(
+        "请发送抽奖将要发送的目标 chat id，它必须是我已经加入的群组或者频道，否则抽奖消息将无法正确发送。\n你可以在群组或频道中发送 /info 命令来获取 chat_id。")
 
 
 @router.message(LotteryForm.number_of_participants)
@@ -140,10 +154,11 @@ async def handle_lottery_number_of_participants(message: Message, state: FSMCont
     await state.update_data(max_participants=max_participants)
     await message.reply("最大参与人数已设置为：{}".format(max_participants))
     await state.set_state(LotteryForm.send_to_chat)
+    await message.reply(
+        "请发送抽奖将要发送的目标 chat id，它必须是我已经加入的群组或者频道，否则抽奖消息将无法正确发送。\n你可以在群组或频道中发送 /info 命令来获取 chat_id。")
 
 @router.message(LotteryForm.send_to_chat)
 async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
-    await message.reply("请发送抽奖将要发送的目标 chat id，它必须是我已经加入的群组或者频道，否则抽奖消息将无法正确发送。\n你可以在群组或频道中发送 /info 命令来获取 chat_id。")
     try:
         chat_id = int(message.text.strip())
     except ValueError:
@@ -184,6 +199,9 @@ async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
     await message.reply("抽奖活动已成功发布")
     from adapters.db.lottery import save_lottery_info
     lottery_id = await save_lottery_info(chat_id=chat_id, lottery_data=db_schema)
+    if db_schema["type"] == "time":
+        from adapters.scheduler.lottery import start_lottery_job
+        await start_lottery_job(lottery_id=lottery_id, chat_id=chat_id)
     if lottery_id:
         join_button = InlineKeyboardButton(text="参与抽奖", callback_data=f"join-lottery:{lottery_id}")
         join_markup = InlineKeyboardMarkup(inline_keyboard=[[join_button]])

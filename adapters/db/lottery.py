@@ -8,19 +8,26 @@ async def save_lottery_info(chat_id: int, lottery_data: dict) -> int | None:
     await lottery_obj.save()
     return getattr(lottery_obj, 'id', None)
 
-async def get_lottery_info(lottery_id: int, chat_id: int) -> dict:
+async def get_lottery_info(lottery_id: int, chat_id: None | int) -> dict:
     """Retrieve lottery information for a specific chat_id."""
-    lottery = await Lottery.filter(chat_id=chat_id,id=lottery_id).values()
-    return lottery[0] or {}
+    if chat_id is None:
+        lotteries = await Lottery.filter(id=lottery_id).values()
+    else:
+        lotteries = await Lottery.filter(chat_id=chat_id, id=lottery_id).values()
+    return lotteries[0] if lotteries else {}
 
 async def get_all_unended_lotteries() -> list[dict]:
     """Retrieve all unended lotteries."""
     lotteries = await Lottery.filter(is_ended=False).values()
     return lotteries
 
-async def update_lottery_info(chat_id: int, lottery_id: int,lottery_data: dict) -> None:
+async def update_lottery_info(chat_id: None | int, lottery_id: int,lottery_data: dict) -> None:
     """Update lottery information for a specific chat_id."""
-    lottery = await Lottery.get_or_none(chat_id=chat_id,id=lottery_id)
+    lottery = {}
+    if chat_id is None:
+        lottery = await Lottery.get_or_none(id=lottery_id)
+    else:
+        lottery = await Lottery.get_or_none(chat_id=chat_id,id=lottery_id)
     if lottery:
         for key, value in lottery_data.items():
             setattr(lottery, key, value)

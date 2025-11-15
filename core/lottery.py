@@ -255,6 +255,11 @@ async def handle_lottery_join_method_send_to_chat(message: Message, state: FSMCo
             await message.reply("我或者您不在目标聊天中，请先将我加入该群组或频道并确保我有发送消息的权限。")
             await state.set_state(LotteryForm.join_method)
             return
+    else :
+        await message.reply("目标 chat_id 看起来不像是一个群组或频道的 chat_id，请确保 chat_id 正确，然后重试。\n如果是群组或频道的 chat_id，请确保它是 bot API 可识别的格式（即以 -100 开头）。")
+        await state.set_state(LotteryForm.send_to_chat)
+        return
+    # 发送抽奖消息到目标聊天
     try:
         lottery_msg = await message.bot.send_message(
             chat_id=chat_id,

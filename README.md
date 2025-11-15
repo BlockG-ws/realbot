@@ -8,16 +8,30 @@ demo: @BlockG_bot
 - /打 \打 这样的指令
 - 清理链接
 - 复读机
+- 抽奖
+- 消息转发到联邦宇宙
 - 消息统计
 - 按照条件解除频道消息在群组的置顶
 
 # 运行
+## 直接运行
 安装好依赖之后
 ```bash
+uv sync
 BOT_TOKEN="12345678:<your token>" uv run main.py
 ```
-默认全部功能关闭，你可以把 config.example.yaml 复制到 config.yaml 自己改一下
+默认开启全部功能，你可以把 config.example.yaml 复制到 config.yaml 自己改一下
 
+## 使用 Docker
+```bash
+docker build -t realbot .
+docker run -e BOT_TOKEN="12345678:<your token>" realbot
+```
+
+另外有 Docker 镜像发布在 `ghcr.io/blockg-ws/realbot:latest`，可以直接拉取使用
+```bash
+docker run -e BOT_TOKEN="12345678:<your token>" ghcr.io/blockg-ws/realbot:latest
+```
 # TODO
 我想做 matrix bot，不过这两天先不做了
 

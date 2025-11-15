@@ -38,6 +38,9 @@ async def recover_lottery_jobs() -> None:
     lotteries = await get_all_unended_lotteries()
     scheduler = Scheduler.scheduler
     for lottery in lotteries:
+        # Skip lotteries without end_time
+        if not lottery.get('end_time'):
+            continue
         lottery_id = lottery['id']
         chat_id = lottery['chat_id']
         end_time = lottery['end_time']

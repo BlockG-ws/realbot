@@ -173,6 +173,20 @@ async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
     elif db_schema["type"] == "达到参与人数":
         db_schema["type"] = "participants"
         db_schema["end_time"] = None
+    # 验证 bot 和发送者是否在目标聊天中
+    if str(chat_id).startswith("-100"):
+        try:
+            bot_user = await message.bot.get_me()
+            member = await message.bot.get_chat_member(chat_id=chat_id, user_id=bot_user.id)
+            user_member = await message.bot.get_chat_member(chat_id=chat_id, user_id=message.from_user.id)
+        except Exception as e:
+            await message.reply("无法验证我或者您在目标聊天中的身份，请确保 chat_id 正确且我和您都是该聊天的成员。\n错误信息：{}".format(e))
+            await state.set_state(LotteryForm.send_to_chat)
+            return
+        if not member.status in ('creator', 'administrator', 'member') or not user_member.status in ('creator', 'administrator', 'member'):
+            await message.reply("我或者您不在目标聊天中，请先将我加入该群组或频道并确保我有发送消息的权限。")
+            await state.set_state(LotteryForm.send_to_chat)
+            return
     try:
         lottery_msg = await message.bot.send_message(
             chat_id=chat_id,

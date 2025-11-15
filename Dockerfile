@@ -5,6 +5,8 @@
 
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
+LABEL org.opencontainers.image.description="A telegram (& matrix) bot made with aiogram & nio."
+
 # Prevent Python from writing .pyc files and buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

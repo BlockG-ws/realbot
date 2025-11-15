@@ -67,6 +67,7 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
     winner_count = lottery.get('winner_count', 1)
     title = lottery.get('title', '抽奖活动')
     creator = lottery.get('creator', {}).get('name', '未知用户')
+    creator_id = lottery.get('creator', {}).get('id', None)
     from helpers.rand import choose_random_winners
     winners_info = await choose_random_winners(participants=participants, number_of_winners=winner_count)
     winners = [str(w) for w in winners_info.get('winners', [])]
@@ -89,6 +90,21 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
                   round=winners_info['round'],
                 )
     )
+
+    # 发送私信给每个获奖者
+    for winner_id in winners_info.get('winners', []):
+        try:
+            await bot.send_message(
+                chat_id=winner_id,
+                text="🎉 恭喜你在抽奖《{}》中获奖！ 🎉\n\n请及时联系抽奖创建者（{}）领取奖品！".format(title, creator)
+            )
+        except Exception as e:
+            # 无法发送私信给获奖者，可能是因为对方没有与 bot 建立对话
+            if creator_id:
+                await bot.send_message(
+                    chat_id=creator_id,
+                    text=f"无法向获奖者 <a href=\"tg://user?id={winner_id}\">{winner_id}</a> 发送私信，请提醒他们领取奖品"
+                )
 
     # 标记抽奖为结束状态
     await end_lottery(chat_id=chat_id, lottery_id=lottery_id)
@@ -336,7 +352,7 @@ async def handle_lottery_use_token(message: Message, state: FSMContext):
                                 "获奖人数：{}\n".format(data['number_of_winners']) +
                                 "最大参与人数：{}\n".format(data.get('max_participants',"不限")) +
                                 "结束时间：{}\n\n".format(data.get('end_time',"不限")) +
-                                f"你可以通过向 {bot_username} 发送 <code>/lottery p {lottery_id}:{token_text}</code> 来参与这个抽奖")
+                                f"你可以通过向 @{bot_username} 发送 <code>/lottery p {lottery_id}:{token_text}</code> 来参与这个抽奖")
         await message.reply("抽奖活动已成功创建！请向要参与抽奖的用户发送以上信息以告知他们参与抽奖\n")
     except Exception as e:
         await message.reply("无法创建抽奖活动\n错误信息：{}".format(e))

@@ -30,6 +30,7 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
     participants = lottery.get('participants', [])
     winner_count = lottery.get('winner_count', 1)
     title = lottery.get('title', '抽奖活动')
+    creator = lottery.get('creator', {}).get('name', '未知用户')
     from helpers.rand import choose_random_winners
     winners_info = await choose_random_winners(participants=participants, number_of_winners=winner_count)
     winners = [str(w) for w in winners_info.get('winners', [])]
@@ -37,18 +38,20 @@ async def handle_draw_lottery(bot,lottery_id, chat_id):
     await bot.send_message(chat_id=chat_id, text="抽奖活动达到了参与人数上限，正在开奖...")
 
     # 发送获奖者名单
-    # TODO: 添加复现条件
     await bot.send_message(
         chat_id=chat_id,
-        text= "🎉 抽奖活动结束！ 🎉\n\n" +
-              Bold(title).as_html() +
-              "获奖者名单：\n" +
-              ", ".join(winners) + "\n\n" +
-              "本抽奖基于 <a href=\"https://drand.love\">drand</a> 的第{round}次随机种子：{seed}\n"
-              .format(
+        text=   "🎉 抽奖活动结束！ 🎉\n\n" +
+                Bold(title).as_html() +
+                "获奖者名单：\n" +
+                ", ".join(winners) + "\n\n" +
+                "参与者列表：\n" +
+                ", ".join([str(p) for p in participants]) + "\n\n" +
+                f"请中奖者及时联系抽奖创建者（{creator}）领取奖品！\n\n" +
+                "本抽奖基于 <a href=\"https://drand.love\">drand</a> 的第{round}次随机种子：{seed}，可以通过以上信息复现抽奖结果\n"
+                .format(
                   seed=winners_info['seed'],
                   round=winners_info['round'],
-              )
+                )
     )
 
     # 标记抽奖为结束状态
@@ -173,6 +176,10 @@ async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
     elif db_schema["type"] == "达到参与人数":
         db_schema["type"] = "participants"
         db_schema["end_time"] = None
+    db_schema["creator"] = {
+        "id": message.from_user.id,
+        "name": message.from_user.full_name,
+    }
     # 验证 bot 和发送者是否在目标聊天中
     if str(chat_id).startswith("-100"):
         try:
@@ -190,7 +197,7 @@ async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
     try:
         lottery_msg = await message.bot.send_message(
             chat_id=chat_id,
-            text=("🎉 抽奖活动已创建！ 🎉\n\n"
+            text=("{creator} 创建了一个抽奖：\n\n"
                   "标题：{title}\n"
                   "描述：{description}\n"
                   "类型：{type}\n"
@@ -198,12 +205,13 @@ async def handle_lottery_send_to_chat(message: Message, state: FSMContext):
                   "最大参与人数：{max_participants}\n"
                   "结束时间：{end_time}\n\n"
                   "点击下方按钮参与抽奖！").format(
-                      title=data.get("title"),
-                      description=data.get("description", "无"),
-                      number_of_winners=data.get("number_of_winners"),
-                      type=data.get("type"),
-                      max_participants=data.get("max_participants", "不限"),
-                      end_time=data.get("end_time", "不限"),
+                        creator=message.from_user.mention_html(),
+                        title=data.get("title"),
+                        description=data.get("description", "无"),
+                        number_of_winners=data.get("number_of_winners"),
+                        type=data.get("type"),
+                        max_participants=data.get("max_participants", "不限"),
+                        end_time=data.get("end_time", "不限"),
                   )
         )
     except Exception as e:
@@ -233,11 +241,13 @@ async def handle_join_lottery(callback_query):
         await callback_query.answer("该抽奖活动已结束。", show_alert=False)
         return
     participants = lottery.get('participants', [])
-    if len(participants) == lottery.get('max_participants', float('inf')):
-        await handle_draw_lottery(callback_query.message.bot,lottery_id, chat_id=chat_id)
     if user_id in participants:
         await callback_query.answer("你已经参与了该抽奖活动。", show_alert=False)
         return
     participants.append(user_id)
     await update_lottery_info(chat_id=callback_query.message.chat.id, lottery_data={'participants': participants}, lottery_id=lottery_id)
     await callback_query.answer("你已成功参与抽奖！祝你好运！", show_alert=False)
+    # 如果达到了最大参与人数，立即开奖
+    # 移到这里以确保最后一人加入时能立即开奖
+    if len(participants) == lottery.get('max_participants', float('inf')):
+        await handle_draw_lottery(callback_query.message.bot,lottery_id, chat_id=chat_id)

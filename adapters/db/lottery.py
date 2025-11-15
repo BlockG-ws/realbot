@@ -4,7 +4,7 @@ async def save_lottery_info(chat_id: int, lottery_data: dict) -> int | None:
     """Save lottery information for a specific chat_id."""
     lottery_obj = await Lottery.create(chat_id=chat_id, type=lottery_data['type'], winner_count=lottery_data['number_of_winners'], max_participants=lottery_data.get('max_participants'),
                                        end_time=lottery_data.get('end_time'), title=lottery_data['title'],
-                                       description=lottery_data.get('description'), participants=[], is_ended=False)
+                                       description=lottery_data.get('description'), participants=[], creator=lottery_data['creator'], token=lottery_data.get('token'),is_ended=False)
     await lottery_obj.save()
     return getattr(lottery_obj, 'id', None)
 

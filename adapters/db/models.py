@@ -48,6 +48,8 @@ class Lottery(models.Model):
     end_time = fields.DatetimeField(null=True)
     title = fields.CharField(max_length=1024)
     description = fields.TextField(null=True)
+    creator = fields.JSONField(null=True,default=dict)
+    token = fields.CharField(max_length=1024,null=True)
     participants = fields.JSONField(null=True,default=list)
     winners = fields.JSONField(null=True,default=list)
     is_ended = fields.BooleanField(default=False)

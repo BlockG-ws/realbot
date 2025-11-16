@@ -81,7 +81,7 @@ class MessageStatsMiddleware(BaseMiddleware):
             await update_user_stats(chat_id, user_id, username, name, attr=None)
 
             # 羡慕、我菜统计
-            if event.text and any(keyword in event.text.lower() for keyword in ['xm','xmsl','羡慕','羡慕死了']):
+            if event.text and any(keyword in event.text for keyword in ['xm','xmsl','羡慕','羡慕死了']):
                 await update_user_stats(chat_id, user_id, username, name, attr='xm_count')
 
             if event.sticker and event.sticker.file_unique_id in ['AQADhhcAAs1rgFVy']:

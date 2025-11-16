@@ -25,9 +25,13 @@ async def handle_stats_command(message: Message):
         key=lambda x: x[1]['message_count'],
         reverse=True
     )
+    active = stats.get('messages_24h', {}).get('active_users', {})
     sorted_24h_users = sorted(
-        [(user_id, stats['users'][user_id]) for user_id in stats.get('messages_24h', {}).get('active_users', [])],
-        key=lambda x: x[1]['message_count'],
+        [
+            (user_id, stats['users'].get(user_id) or stats['users'].get(int(user_id), {}))
+            for user_id in active.keys()
+        ],
+        key=lambda x: active.get(x[0], 0),
         reverse=True
     )
     sorted_most_xm_users = sorted(
@@ -53,13 +57,13 @@ async def handle_stats_command(message: Message):
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {user_data['message_count']} 条\n"
-    text += "</blockquote>\n"
+    text += "</blockquote>\n\n"
     text += "📈 24小时内发言排行榜:\n"
     text += "<blockquote expandable>"
     for i, (user_id, user_data) in enumerate(sorted_24h_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
         text += f"{i}. {name}: {stats['messages_24h']['active_users'][user_id]} 条\n"
-    text += "</blockquote>\n"
+    text += "</blockquote>\n\n"
     if sorted_most_xm_users and any(user_data['xm_count'] > 0 for _, user_data in sorted_most_xm_users):
         text += "\n🍋 羡慕统计:\n"
         text += "<blockquote expandable>"
@@ -67,7 +71,7 @@ async def handle_stats_command(message: Message):
             if user_data['xm_count'] > 0:
                 name = user_data['name'] or user_data['username'] or str(user_id)
                 text += f"{name}: {user_data['xm_count']} 次羡慕\n"
-        text += "</blockquote>\n"
+        text += "</blockquote>\n\n"
     if sorted_most_wocai_users and any(user_data['wocai_count'] > 0 for _, user_data in sorted_most_wocai_users):
         text += "\n🥬 卖菜统计:\n"
         text += "<blockquote expandable>"

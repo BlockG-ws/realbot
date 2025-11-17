@@ -43,10 +43,11 @@ async def handle_anonymous_channel_msgs(message: Message):
     chat_id = message.chat.id
     channel_id = message.sender_chat.id if message.sender_chat else None
     is_from_binded_channel = message.is_automatic_forward
+    is_group_anonymous_admin = message.sender_chat and message.sender_chat.id == message.chat.id
     from adapters.db.anti_fake_users import get_whitelist, get_ban_config
     whitelist = await get_whitelist(chat_id)
     also_ban = await get_ban_config(chat_id)
-    if channel_id and channel_id not in whitelist and not is_from_binded_channel:
+    if channel_id and channel_id not in whitelist and not is_from_binded_channel and is_group_anonymous_admin:
         try:
             if also_ban:
                 await message.bot.ban_chat_sender_chat(chat_id, channel_id)

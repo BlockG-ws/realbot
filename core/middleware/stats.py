@@ -4,6 +4,7 @@ from typing import Callable, Dict, Any, Awaitable
 
 from datetime import datetime, timedelta
 from adapters.db.stats import update_group_stats, update_user_stats, get_24h_message_stats, update_24h_message
+from config import config
 
 
 async def cleanup_old_messages(chat_id: int):
@@ -60,6 +61,8 @@ class MessageStatsMiddleware(BaseMiddleware):
         data: Dict[str, Any]
     ) -> Any:
         # 只统计群组消息
+        if not await config.is_feature_enabled('stats', event.chat.id):
+            return await handler(event, data)
         if event.chat.type in ['group', 'supergroup']:
             chat_id = event.chat.id
             user_id = event.from_user.id if event.from_user else 0

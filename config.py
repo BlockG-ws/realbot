@@ -120,12 +120,14 @@ class Config:
                 # Fallback to global features if neither DB nor file has group config
                 return self.config_data.get('features', {})
             else:
-                db_config = _fill_none(db_config, file_cfg)
+                global_features = self.config_data.get('features', {})
+                global_features = _normalize_enabled_dicts(global_features)
                 if file_cfg:
-                    global_features = self.config_data.get('features', {})
-                    global_features = _normalize_enabled_dicts(global_features)
+                    db_config = _fill_none(db_config, file_cfg)
                     db_config = _fill_none(db_config, global_features)
                     return db_config
+                else:
+                    db_config = _fill_none(db_config, global_features)
             return db_config
         except Exception as e:
             logging.warning(f"获取群组 {chat_id} 配置时出错",e)

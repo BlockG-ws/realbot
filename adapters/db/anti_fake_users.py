@@ -3,7 +3,7 @@ from adapters.db.models import ChannelWhiteList
 async def get_whitelist(chat_id: int) -> dict:
     """Retrieve whitelist for a specific chat_id."""
     whitelist = await ChannelWhiteList.get_or_none(chat_id=chat_id).values()
-    return whitelist[0]['whitelist'] if whitelist else []
+    return whitelist['whitelist'] if whitelist else []
 
 async def add_whitelist(chat_id: int, channel: int) -> None:
     """Update whitelist for a specific chat_id."""
@@ -22,3 +22,9 @@ async def get_ban_config(chat_id: int) -> dict:
     """Retrieve ban configuration for a specific chat_id."""
     config = await ChannelWhiteList.get_or_none(chat_id=chat_id).values()
     return config[0]['also_ban'] if config else False
+
+async def set_ban_config(chat_id: int, also_ban: bool) -> None:
+    """Set ban configuration for a specific chat_id."""
+    data, created = await ChannelWhiteList.get_or_create(chat_id=chat_id)
+    data.also_ban = also_ban
+    await data.save()

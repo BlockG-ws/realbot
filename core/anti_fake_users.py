@@ -38,6 +38,26 @@ async def handle_remove_whitelist_command(message: Message):
         await remove_whitelist(message.chat.id, channel_id)
         await message.reply(f"已将频道 {channel_id} 从白名单中移除")
 
+async def handle_enable_also_ban_command(message: Message):
+    """启用同时封禁频道马甲的功能"""
+    args = message.text.split(' ')
+    if len(args) != 2:
+        await message.reply("用法： /also_auto_ban_channel [on|off]")
+        return
+    chat_id = message.chat.id
+    member = await message.chat.get_member(message.from_user.id)
+    is_group_anonymous_admin = message.sender_chat and message.sender_chat.id == message.chat.id
+    if not member.status in ['administrator', 'creator'] and not is_group_anonymous_admin:
+        await message.reply("只有管理员才能使用此命令")
+        return
+    from adapters.db.anti_fake_users import set_ban_config
+    if args[1] in ("on", "true", "1", "yes"):
+        await set_ban_config(chat_id, True)
+        await message.reply("已启用删除同时封禁频道马甲")
+    elif args[1] == ("off", "false", "0", "no"):
+        await set_ban_config(chat_id, False)
+        await message.reply("已禁用删除同时封禁频道马甲")
+
 async def handle_anonymous_channel_msgs(message: Message):
     """处理来自匿名频道的消息"""
     chat_id = message.chat.id

@@ -31,7 +31,7 @@ async def handle_config_command(message: Message):
         await message.reply("用法： /config \\<key> \\<value>")
         return
     key = args[0]
-    if group_config.get(key,None) and not config.is_global_feature_enabled(key):
+    if key in group_config and not config.is_global_feature_enabled(key):
         await message.reply("该功能已经在全局配置中禁用")
         return
     elif not key in group_config:

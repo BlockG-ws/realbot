@@ -9,8 +9,12 @@ async def handle_whitelist_command(message: Message):
     chat_id = message.chat.id
     if config.is_feature_enabled('anti_anonymous', chat_id) is False:
         return
+    cargs = message.text.split(' ')
+    if len(cargs) < 2:
+        await message.reply("用法： /allow 目标频道ID")
+        return
     try:
-        channel_id = int(message.text.split(' ')[1])
+        channel_id = int(cargs[1])
     except (IndexError, ValueError):
         await message.reply("请提供有效的频道ID")
         return
@@ -27,10 +31,14 @@ async def handle_whitelist_command(message: Message):
 async def handle_remove_whitelist_command(message: Message):
     """处理移除白名单命令"""
     chat_id = message.chat.id
+    cargs = message.text.split(' ')
+    if len(cargs) < 2:
+        await message.reply("用法： /disallow 目标频道ID")
+        return
     if config.is_feature_enabled('anti_anonymous', chat_id) is False:
         return
     try:
-        channel_id = int(message.text.split(' ')[1])
+        channel_id = int(cargs[1])
     except (IndexError, ValueError):
         await message.reply("请提供有效的频道ID")
         return

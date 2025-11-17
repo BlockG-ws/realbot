@@ -120,7 +120,6 @@ class Config:
                 # Fallback to global features if neither DB nor file has group config
                 return self.config_data.get('features', {})
             else:
-
                 db_config = _fill_none(db_config, file_cfg)
                 if file_cfg:
                     global_features = self.config_data.get('features', {})

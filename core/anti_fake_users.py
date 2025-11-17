@@ -2,9 +2,13 @@ import logging
 
 from aiogram.types import Message
 
+from config import config
+
 async def handle_whitelist_command(message: Message):
     """处理白名单命令"""
     chat_id = message.chat.id
+    if config.is_feature_enabled('anti_anonymous', chat_id) is False:
+        return
     try:
         channel_id = int(message.text.split(' ')[1])
     except (IndexError, ValueError):
@@ -23,6 +27,8 @@ async def handle_whitelist_command(message: Message):
 async def handle_remove_whitelist_command(message: Message):
     """处理移除白名单命令"""
     chat_id = message.chat.id
+    if config.is_feature_enabled('anti_anonymous', chat_id) is False:
+        return
     try:
         channel_id = int(message.text.split(' ')[1])
     except (IndexError, ValueError):
@@ -45,6 +51,8 @@ async def handle_enable_also_ban_command(message: Message):
         await message.reply("用法： /also_auto_ban_channel [on|off]")
         return
     chat_id = message.chat.id
+    if config.is_feature_enabled('anti_anonymous', chat_id) is False:
+        return
     member = await message.chat.get_member(message.from_user.id)
     is_group_anonymous_admin = message.sender_chat and message.sender_chat.id == message.chat.id
     if not member.status in ['administrator', 'creator'] and not is_group_anonymous_admin:
@@ -61,6 +69,8 @@ async def handle_enable_also_ban_command(message: Message):
 async def handle_anonymous_channel_msgs(message: Message):
     """处理来自匿名频道的消息"""
     chat_id = message.chat.id
+    if config.is_feature_enabled('anti_anonymous', chat_id) is False:
+        return
     channel_id = message.sender_chat.id if message.sender_chat else None
     is_from_binded_channel = message.is_automatic_forward
     is_group_anonymous_admin = message.sender_chat and message.sender_chat.id == message.chat.id

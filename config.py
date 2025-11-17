@@ -152,13 +152,14 @@ class Config:
                 is_enabled = await get_config_value(chat_id, feature_name)
                 if isinstance(is_enabled, bool):
                     return is_enabled
-                elif isinstance(is_enabled, dict):
-                    return is_enabled.get('enable', False)
+                elif isinstance(is_enabled, dict) and 'enable' in is_enabled:
+                    return is_enabled.get('enable')
             except Exception:
                 logging.warning(f"从数据库获取 {feature_name} 配置时出错，使用文件配置作为后备")
             group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config:
-                return group_config[feature_name].get('enable', False)
+            if feature_name in group_config and group_config[feature_name]['enable'] is not None:
+                return group_config[feature_name].get('enable')
+            return self.is_global_feature_enabled(feature_name)
         return False
 
 

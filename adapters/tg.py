@@ -11,8 +11,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
 from adapters.scheduler.core import get_all_unended_jobs, Scheduler
-from core.anti_fake_users import handle_anonymous_channel_msgs, handle_whitelist_command, \
-    handle_remove_whitelist_command, handle_enable_also_ban_command
+from core.anti_fake_users import handle_anonymous_channel_msgs, handle_channel_manage_command
 from core.cfg import handle_config_command
 from core.inline import handle_inline_query
 from core.lottery import router as lottery_router, handle_lottery_command
@@ -103,9 +102,7 @@ class TelegramAdapter:
         #    handle_unpin_channel_message)
         # repeater 模块
         # 反频道马甲 anti_fake_users 模块
-        router.message(Command('allow'))(handle_whitelist_command)
-        router.message(Command('disallow'))(handle_remove_whitelist_command)
-        router.message(Command('also_auto_ban_channel'))(handle_enable_also_ban_command)
+        router.message(Command('fake'))(handle_channel_manage_command)
         anti_anonymous_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & ~F.is_automatic_forward)(handle_anonymous_channel_msgs)
 
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)

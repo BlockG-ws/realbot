@@ -4,12 +4,15 @@ from config import config
 from adapters.db.config import update_config_value
 
 async def handle_config_command(message: Message):
+    if not message.chat.type in ('group', 'supergroup'):
+        await message.reply("此命令只能在群组中使用")
+        return
     chat_id = message.chat.id
     group_config = await config.get_group_config(chat_id)
     member = await message.chat.get_member(message.from_user.id)
     is_anonymous = message.sender_chat.id == message.chat.id if message.sender_chat else False
     if not member.status in ('administrator', 'creator') and not is_anonymous:
-        await message.reply("只有群管理员才能使用此命令")
+        await message.reply("只有管理员才能使用此命令")
         return
     splited_text = message.text.split(' ')
     if len(splited_text) == 1:

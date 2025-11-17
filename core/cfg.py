@@ -7,7 +7,7 @@ async def handle_config_command(message: Message):
     chat_id = message.chat.id
     group_config = await config.get_group_config(chat_id)
     member = await message.chat.get_member(message.from_user.id)
-    is_anonymous = message.sender_chat.id == message.chat.id
+    is_anonymous = message.sender_chat.id == message.chat.id if message.sender_chat else False
     if not member.status in ('administrator', 'creator') and not is_anonymous:
         await message.reply("只有群管理员才能使用此命令")
         return
@@ -28,8 +28,11 @@ async def handle_config_command(message: Message):
         await message.reply("用法： /config \\<key> \\<value>")
         return
     key = args[0]
-    if not config.is_global_feature_enabled(key):
+    if group_config.get(key,None) and not config.is_global_feature_enabled(key):
         await message.reply("该功能已经在全局配置中禁用")
+        return
+    elif not key in group_config:
+        await message.reply("不存在该功能，请检查后重试")
         return
     if key in group_config and isinstance(group_config[key], bool):
         if args[1].lower() in ['true', '1', 'yes', 'on']:
@@ -45,6 +48,10 @@ async def handle_config_command(message: Message):
         elif args[1].lower() in ['false', '0', 'no', 'off']:
             await update_config_value(chat_id=chat_id, feature=key, key="enable", value=False)
             await message.reply(f"功能 {key} 已关闭")
-        elif args[1] in group_config[key]:
+        elif args[1] in group_config[key].keys():
             await update_config_value(chat_id=chat_id, feature=key, key=args[1], value=" ".join(args[2:]))
             await message.reply(f"配置项 {key}.{args[1]} 已更新为 {' '.join(args[2:])}")
+        elif args[1] not in group_config[key].keys():
+            await message.reply(f"配置项 {key}.{args[1]} 不存在，请检查后重试")
+    else:
+        await message.reply("指定的配置项不存在，请检查后重试")

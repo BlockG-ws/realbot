@@ -11,6 +11,8 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
 from adapters.scheduler.core import get_all_unended_jobs, Scheduler
+from core.anti_fake_users import handle_anonymous_channel_msgs, handle_whitelist_command, \
+    handle_remove_whitelist_command
 from core.inline import handle_inline_query
 from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
@@ -66,6 +68,7 @@ class TelegramAdapter:
         router = Router()
         actions_router = Router()
         repeater_router = Router()
+        anti_anonymous_router = Router()
         dummy_router = Router()
 
         # Register handlers on router
@@ -96,6 +99,11 @@ class TelegramAdapter:
         #            F.sender_chat.type == 'channel'))(
         #    handle_unpin_channel_message)
         # repeater 模块
+        # 反频道马甲 anti_fake_users 模块
+        router.message(Command('allow'))(handle_whitelist_command)
+        router.message(Command('disallow'))(handle_remove_whitelist_command)
+        anti_anonymous_router.message(F.chat.type.in_({'group', 'supergroup'}) & F.sender_chat & ~F.is_automatic_forward)(handle_anonymous_channel_msgs)
+
         repeater_router.message(F.chat.type.in_({'group', 'supergroup'}))(MessageRepeater().handle_message)
         router.message(F.text.regexp(r'(n|N) ?网尾号 ?[0-9]*'))(handle_nexusmods_id)
         # welcome 模块
@@ -117,11 +125,13 @@ class TelegramAdapter:
         # 通用的路由
         self.dp.include_router(router)
         self.dp.include_router(actions_router)
+        self.dp.include_router(anti_anonymous_router)
         # 处理联邦宇宙认证相关
         self.dp.include_router(fedi_router)
         self.dp.include_router(lottery_router)
         self.dp.include_router(repeater_router)
         self.dp.include_router(dummy_router)
+
 
     def _setup_middleware(self):
         """注册中间件"""

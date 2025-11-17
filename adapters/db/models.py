@@ -1,5 +1,22 @@
 from tortoise import fields, models
 
+class Config(models.Model):
+    chat_id = fields.BigIntField(index=True)
+    actions = fields.BooleanField(default=False)
+    bitflip = fields.BooleanField(default=False)
+    link = fields.BooleanField(default=False)
+    fedi = fields.BooleanField(default=False)
+    repeater = fields.BooleanField(default=False)
+    promote = fields.BooleanField(default=False)
+    stats = fields.BooleanField(default=False)
+    unpin = fields.JSONField(null=True,default=dict)
+    welcome = fields.JSONField(null=True,default=dict)
+    anti_anonymous = fields.BooleanField(default=False)
+
+    class Meta:
+        table = "config"
+
+
 class Stats(models.Model):
     chat_id = fields.BigIntField(index=True,unique=True)
     chat_title = fields.CharField(null=True,max_length=1024)
@@ -39,6 +56,14 @@ class FediUserTokens(models.Model):
     class Meta:
         table = "fedi_tokens"
         unique_together = (("user_id", "instance_domain"),)
+
+class ChannelWhiteList(models.Model):
+    chat_id = fields.BigIntField(index=True)
+    whitelist = fields.JSONField(null=True,default=list)
+    also_ban = fields.BooleanField(default=False)
+
+    class Meta:
+        table = "channel_whitelist"
 
 class Lottery(models.Model):
     chat_id = fields.BigIntField(index=True)

@@ -47,6 +47,12 @@ features:
   welcome:
     enable: false
     message: "嘤嘤嘤"
+  # 启用反频道马甲
+  anti_anonymous:
+    enable: false
+    also_ban: false
+    whitelist:
+      - 123456789  # 默认允许的频道身份 ID 列表
 
 # group features settings
 # 群组 id，使用 bot api（bot 内置的 info 命令）

@@ -7,7 +7,7 @@ from config import config
 import logging
 
 async def handle_actions(message: Message) -> None:
-    if not config.is_feature_enabled('actions', message.chat.id):
+    if not await config.is_feature_enabled('actions', message.chat.id):
         logging.debug(f"收到了命中 / 开头的的消息，但是 actions 功能未启用，跳过处理")
         return
     rawtext = message.text
@@ -33,7 +33,7 @@ async def handle_actions(message: Message) -> None:
 async def handle_reverse_actions(message: Message) -> None:
     from_user = message.from_user.mention_html(message.sender_chat.title) if message.sender_chat else message.from_user.mention_html()
     replied_user = message.reply_to_message.from_user.mention_html(message.reply_to_message.sender_chat.title) if message.reply_to_message and message.reply_to_message.sender_chat else message.reply_to_message.from_user.mention_html()
-    if not config.is_feature_enabled('actions', message.chat.id):
+    if not await config.is_feature_enabled('actions', message.chat.id):
         logging.debug(f"收到了命中 \\ 开头的的消息，但是 actions 功能未启用，跳过处理")
         return
     logging.debug(f"收到了命中 \\ 开头的消息: {message.text}")

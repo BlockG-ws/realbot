@@ -5,7 +5,7 @@ from config import config
 
 async def handle_stats_command(message: Message):
     """处理统计命令"""
-    if not config.is_feature_enabled('stats', message.chat.id):
+    if not await config.is_feature_enabled('stats', message.chat.id):
         return
     if message.chat.type not in ['group', 'supergroup']:
         await message.reply("此命令仅在群组中可用")

@@ -25,7 +25,7 @@ class MessageRepeater:
         else:
             return
 
-        if not config.is_feature_enabled('repeater', message.chat.id):
+        if not await config.is_feature_enabled('repeater', message.chat.id):
             return
 
         # Clean expired messages

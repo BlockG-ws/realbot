@@ -13,6 +13,7 @@ from aiogram import F
 from adapters.scheduler.core import get_all_unended_jobs, Scheduler
 from core.anti_fake_users import handle_anonymous_channel_msgs, handle_whitelist_command, \
     handle_remove_whitelist_command
+from core.cfg import handle_config_command
 from core.inline import handle_inline_query
 from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
@@ -79,6 +80,8 @@ class TelegramAdapter:
         router.message(Command('tips'))(handle_tips_command)
         # bitflip 模块
         router.message(Command('bitflip'))(handle_bitflip_command)
+        # config 模块
+        router.message(Command('config'))(handle_config_command)
         # promote 模块
         router.message(Command('t'))(handle_promote_command)
         # stats 模块

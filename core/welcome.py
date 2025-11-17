@@ -9,11 +9,11 @@ from config import config
 async def get_welcome_message(chat_id: int) -> str | None:
     if chat_id is None:
         return None
-    elif not config.is_feature_enabled('welcome', chat_id):
+    elif not await config.is_feature_enabled('welcome', chat_id):
         logging.debug(f"收到了欢迎事件，但是 welcome 功能未启用，跳过处理")
         return None
     # 根据 chat_id 获取不同的欢迎消息
-    return config.get_feature_config('welcome', chat_id)['message']
+    return await config.get_feature_config('welcome', chat_id)['message']
 
 
 async def handle_tg_welcome(event: ChatMemberUpdated):

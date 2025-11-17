@@ -26,7 +26,7 @@ def bitflip(text: str) -> str:
     return flipped_text
 
 async def handle_bitflip_command(message: Message) -> None:
-    if not config.is_feature_enabled('bitflip', message.chat.id):
+    if not await config.is_feature_enabled('bitflip', message.chat.id):
         return
     """获取回复的消息文本"""
     if not message.reply_to_message or not message.reply_to_message.text:

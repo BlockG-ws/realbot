@@ -2,16 +2,16 @@ from tortoise import fields, models
 
 class Config(models.Model):
     chat_id = fields.BigIntField(index=True)
-    actions = fields.BooleanField(default=False)
-    bitflip = fields.BooleanField(default=False)
-    link = fields.BooleanField(default=False)
-    fedi = fields.BooleanField(default=False)
-    repeater = fields.BooleanField(default=False)
-    promote = fields.BooleanField(default=False)
-    stats = fields.BooleanField(default=False)
-    unpin = fields.JSONField(null=True,default=dict)
-    welcome = fields.JSONField(null=True,default=dict)
-    anti_anonymous = fields.BooleanField(default=False)
+    actions = fields.BooleanField(null=True, default=None)
+    bitflip = fields.BooleanField(null=True, default=None)
+    link = fields.BooleanField(null=True, default=None)
+    fedi = fields.BooleanField(null=True, default=None)
+    repeater = fields.BooleanField(null=True, default=None)
+    promote = fields.BooleanField(null=True, default=None)
+    stats = fields.BooleanField(null=True, default=None)
+    unpin = fields.JSONField(null=True,default=lambda: {"enable": False, "regex": None})
+    welcome = fields.JSONField(null=True,default=lambda: {"enable": False, "message": None})
+    anti_anonymous = fields.BooleanField(null=True, default=None)
 
     class Meta:
         table = "config"
@@ -34,12 +34,6 @@ class MinecraftBindings(models.Model):
     bedrock_server = fields.CharField(max_length=255,null=True)
     class Meta:
         table = "minecraft_bindings"
-
-class Config(models.Model):
-    chat_id = fields.BigIntField(index=True)
-    config = fields.JSONField(null=True,default=dict)
-    class Meta:
-        table = "config"
 
 class FediClients(models.Model):
     instance_domain = fields.CharField(max_length=255,unique=True)

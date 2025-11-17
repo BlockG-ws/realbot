@@ -7,7 +7,7 @@ from config import config
 
 async def handle_promote_command(message: Message) -> None:
     title = message.text.replace('/t', '').strip()
-    if not config.is_feature_enabled('promote', message.chat.id):
+    if not await config.is_feature_enabled('promote', message.chat.id):
         return
     if message.chat.type not in ['group', 'supergroup']:
         return

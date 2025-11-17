@@ -23,11 +23,12 @@ class UnpinChannelMsgMiddleware(BaseMiddleware):
 
 async def handle_unpin_channel_message(message: Message):
     """Handle unpinning messages from linked channels without a specific hashtag"""
-    if not config.is_feature_enabled('unpin', message.chat.id):
+    if not await config.is_feature_enabled('unpin', message.chat.id):
         logging.debug('发现了频道试图置顶消息，但未启用 unpin 功能，跳过处理')
         return
     try:
-        regex_pattern = config.get_feature_config('unpin', message.chat.id)['regex']
+        cfg = await config.get_feature_config('unpin', message.chat.id)
+        regex_pattern = cfg.get('regex') if isinstance(cfg, dict) else None
         # If a regex pattern exists, check if the message matches
         if regex_pattern:
             import re
@@ -39,5 +40,5 @@ async def handle_unpin_channel_message(message: Message):
         logging.debug('正在尝试取消频道消息的置顶')
         await message.unpin()
         return
-    except Exception as e:
-        logging.error('Error unpinning message:', e)
+    except Exception:
+        logging.exception('Error unpinning message')

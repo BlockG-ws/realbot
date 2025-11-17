@@ -3,7 +3,7 @@ import asyncio
 from aiogram import html
 from aiogram.types import Message
 
-import config
+from config import config
 
 
 async def handle_start_command(message: Message) -> None:
@@ -70,7 +70,7 @@ async def handle_about_command(message: Message) -> None:
         git_commit_hash = 'v20250802'  # Fallback when git operations fail
     response = f"realbot@{git_commit_hash}\n\n"
     response += "孩子不懂随便写的 bot\n"
-    if message.chat.id == config.config.get_admin_id():
+    if message.chat.id == config.get_admin_id():
         response += '\nDebug Info:\n'
         import os
         response += 'Python Version: ' + str(os.sys.version) + '\n'

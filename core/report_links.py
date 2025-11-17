@@ -6,7 +6,7 @@ from config import config
 
 
 async def report_broken_links(message: Message):
-    if not config.is_feature_enabled('link', message.chat.id):
+    if not await config.is_feature_enabled('link', message.chat.id):
         return
     # 获取被回复的消息中的链接
     links = []

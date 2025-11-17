@@ -69,7 +69,7 @@ async def handle_auth(message: Message, state: FSMContext):
     """
     处理身份验证
     """
-    if not config.is_feature_enabled('fedi', message.chat.id):
+    if not await config.is_feature_enabled('fedi', message.chat.id):
         return
     if not message.chat.type == 'private':
         await message.reply('请在私聊中使用此命令')
@@ -150,7 +150,7 @@ async def handle_post_to_fedi(message: Message):
     """
     处理发布到联邦网络的消息
     """
-    if not config.is_feature_enabled('fedi', message.chat.id):
+    if not await config.is_feature_enabled('fedi', message.chat.id):
         return
     if not message.reply_to_message:
         await message.reply('请回复要发布的消息')

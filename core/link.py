@@ -305,7 +305,7 @@ async def clean_link_in_text(text):
     return final_urls
 
 async def handle_tg_links(message: Message):
-    if not config.is_feature_enabled('link', message.chat.id):
+    if not await config.is_feature_enabled('link', message.chat.id):
         return
 
     text = message.text or message.caption
@@ -318,7 +318,7 @@ async def handle_tg_links(message: Message):
                 f"Cleaned URL: <blockquote expandable>{"\n\n".join(final_urls)}\n</blockquote>\n",disable_web_page_preview=True)
 
 async def handle_matrix_links(room, event, client: AsyncClient):
-    if not config.is_feature_enabled('link', room.room_id):
+    if not await config.is_feature_enabled('link', room.room_id):
         return None
 
     text = event.body

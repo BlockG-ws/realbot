@@ -16,7 +16,7 @@ class UnpinChannelMsgMiddleware(BaseMiddleware):
         data: Dict[str, Any]
     ) -> Any:
         if event.chat.type == 'supergroup':
-            if event.sender_chat and event.sender_chat.type == 'channel':
+            if event.sender_chat and event.sender_chat.type == 'channel' and event.is_automatic_forward:
                 # Message is sent by a linked channel
                 await handle_unpin_channel_message(event)
         return await handler(event, data)

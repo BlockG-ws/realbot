@@ -49,7 +49,7 @@ async def handle_anonymous_channel_msgs(message: Message):
     if channel_id and channel_id not in whitelist and not is_from_binded_channel:
         try:
             if also_ban:
-                await message.bot.ban_chat_member(chat_id, channel_id)
+                await message.bot.ban_chat_sender_chat(chat_id, channel_id)
             else:
                 await message.delete()
         except Exception as e:

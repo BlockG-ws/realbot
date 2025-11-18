@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import signal
 import sys
 from asyncio import TaskGroup
@@ -11,7 +12,10 @@ from adapters.tg import TelegramAdapter
 
 async def main():
     """Main entry point"""
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    if os.environ.get("DEBUG", False):
+        logging.basicConfig(level=logging.DEBUG,stream=sys.stdout)
+    else:
+        logging.basicConfig(level=logging.INFO,stream=sys.stdout)
 
     tasks = []
     cfg = config.Config()

@@ -93,9 +93,8 @@ async def handle_anonymous_channel_msgs(message: Message):
     also_ban = await get_ban_config(chat_id)
     if channel_id and channel_id not in whitelist and not is_from_binded_channel and is_group_anonymous_admin:
         try:
+            await message.delete()
             if also_ban:
                 await message.bot.ban_chat_sender_chat(chat_id, channel_id)
-            else:
-                await message.delete()
         except Exception as e:
             logging.warning("无法删除频道马甲消息，可能是因为没有权限",e)

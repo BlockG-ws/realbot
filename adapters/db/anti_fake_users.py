@@ -21,7 +21,7 @@ async def remove_whitelist(chat_id: int, channel: int) -> None:
 async def get_ban_config(chat_id: int) -> dict:
     """Retrieve ban configuration for a specific chat_id."""
     config = await ChannelWhiteList.get_or_none(chat_id=chat_id).values()
-    return config[0]['also_ban'] if config else False
+    return config['also_ban'] if config else False
 
 async def set_ban_config(chat_id: int, also_ban: bool) -> None:
     """Set ban configuration for a specific chat_id."""

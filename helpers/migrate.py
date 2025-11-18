@@ -39,8 +39,8 @@ async def migrate_mc_bindings() -> None:
     for chat_id_str, binding_data in all_bindings.items():
         chat_id = int(chat_id_str)
         binding_obj, created = await MinecraftBindings.get_or_create(chat_id=chat_id)
-        binding_obj.java_server = binding_data.get('java_server')
-        binding_obj.bedrock_server = binding_data.get('bedrock_server')
+        binding_obj.java_server = binding_data.get('java')
+        binding_obj.bedrock_server = binding_data.get('bedrock')
         await binding_obj.save()
 
 # fediverse 账户的信息、客户端机密迁移到数据库
@@ -103,20 +103,25 @@ async def migrate() -> None:
         db_url=f"sqlite://{str(db_path)}",
         modules={'models': ['adapters.db.models']}
     )
-    conn = Tortoise.get_connection('default')
-    # Check if a known table exists; skip schema generation if present
-    table_name = getattr(Stats.Meta, 'table', 'stats')
-    res, _ = await conn.execute_query(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';")
-    if res:
-        print("Schema already exists. Skipping schema generation.")
+    await Tortoise.generate_schemas()
+    resp1 = input("Migrate `message_stats.json`? [y/N]: ").strip().lower()
+    if resp1 in ("y", "yes"):
+        print("Migrating stats...")
+        await migrate_stats()
     else:
-        await Tortoise.generate_schemas()
-    print("Migrating stats...")
-    await migrate_stats()
-    print("Migrating mc bindings...")
-    await migrate_mc_bindings()
-    print("Migrating fediverse secrets...")
-    await migrate_fedi()
+        print("Skipping stats migration.")
+    resp2 = input("Migrate `mc_bindings.json`? [y/N]: ").strip().lower()
+    if resp2 in ("y", "yes"):
+        print("Migrating mc bindings...")
+        await migrate_mc_bindings()
+    else:
+        print("Skipping mc bindings migration.")
+    resp3 = input("Migrate `secrets/` files? [y/N]: ").strip().lower()
+    if resp3 in ("y", "yes"):
+        print("Migrating fediverse secrets...")
+        await migrate_fedi()
+    else:
+        print("Skipping fediverse migration.")
     print("Migration complete! You can now delete the old JSON files and secrets directory if desired.")
     await Tortoise.close_connections()
 

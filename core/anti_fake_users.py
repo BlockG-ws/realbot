@@ -63,7 +63,7 @@ async def handle_channel_manage_command(message: Message):
             await message.reply(f"已将频道马甲 {channel_id} 移出白名单")
             return
     elif operation == 'auto_ban_channel':
-        if is_group_admin:
+        if not is_group_admin:
             await message.reply("只有管理员才能使用此命令")
             return
         if len(cargs) < 3:

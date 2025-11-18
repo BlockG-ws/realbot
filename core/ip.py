@@ -26,9 +26,9 @@ async def handle_ip_command(message: Message):
     await message.bot.send_chat_action(message.chat.id, 'typing')
     info = await generate_msg(await get_info(ip_address))
     if not info:
-        await message.reply(f"未能查询到该 IP 地址的信息。但你可以尝试访问以下网站进行查询：\n {TextLink('HTML.ZONE',url=f'https://html.zone/ip/query/?ip={ip_address}').as_html()}\n {TextLink('iplark',url=f'https://iplark.com/ip/{ip_address}').as_html()}",disable_web_page_preview=True)
+        await message.reply(f"未能查询到该 IP 地址的信息。但你可以尝试访问以下网站进行查询：\n {TextLink('HTML.ZONE',url=f'https://html.zone/ip/query/?ip={ip_address}').as_html()}\n {TextLink('iplark',url=f'https://iplark.com/{ip_address}').as_html()}",disable_web_page_preview=True)
         return
-    await message.reply(f'{Text(ExpandableBlockQuote(info)).as_html()}\n你也可以尝试访问以下网站进行查询：\n {TextLink('HTML.ZONE',url=f'https://html.zone/ip/query/?ip={ip_address}').as_html()}\n {TextLink('iplark',url=f'https://iplark.com/ip/{ip_address}').as_html()}\n\n{Italic('以上数据来源于第三方，数据的真实性 bot 不做保证。').as_html()}',disable_web_page_preview=True)
+    await message.reply(f'{Text(ExpandableBlockQuote(info)).as_html()}\n你也可以尝试访问以下网站进行查询：\n {TextLink('HTML.ZONE',url=f'https://html.zone/ip/query/?ip={ip_address}').as_html()}\n {TextLink('iplark',url=f'https://iplark.com/{ip_address}').as_html()}\n\n{Italic('以上数据来源于第三方，数据的真实性 bot 不做保证。').as_html()}',disable_web_page_preview=True)
 
 async def generate_msg(data: dict) -> str:
     """根据查询到的 IP 信息生成回复消息"""

@@ -14,6 +14,7 @@ from adapters.scheduler.core import get_all_unended_jobs, Scheduler
 from core.anti_fake_users import handle_anonymous_channel_msgs, handle_channel_manage_command
 from core.cfg import handle_config_command
 from core.inline import handle_inline_query
+from core.ip import handle_ip_command
 from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
 from core.post_to_fedi import router as fedi_router
@@ -88,6 +89,8 @@ class TelegramAdapter:
         # fedi 模块
         router.message(Command('fauth'))(handle_auth)
         router.message(Command('post'))(handle_post_to_fedi)
+        # ip 模块
+        router.message(Command('ip'))(handle_ip_command)
         # link 模块
         router.message(Command('report_broken_links'))(report_broken_links)
         router.message(F.text.contains('http') & ~F.text.contains('/report_broken_links'))(handle_tg_links)

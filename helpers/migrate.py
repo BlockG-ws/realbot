@@ -9,7 +9,7 @@ import json
 async def migrate_stats() -> None:
     """Migrate stats from JSON file to database"""
     try:
-        with open('../message_stats.json', 'r', encoding='utf-8') as f:
+        with open('./message_stats.json', 'r', encoding='utf-8') as f:
             all_stats = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("No stats to migrate. Skipping.")
@@ -30,7 +30,7 @@ async def migrate_stats() -> None:
 async def migrate_mc_bindings() -> None:
     """Migrate Minecraft bindings from JSON file to database"""
     try:
-        with open('../mc_bindings.json', 'r', encoding='utf-8') as f:
+        with open('./mc_bindings.json', 'r', encoding='utf-8') as f:
             all_bindings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("No Minecraft bindings to migrate. Skipping.")
@@ -46,7 +46,7 @@ async def migrate_mc_bindings() -> None:
 # fediverse 账户的信息、客户端机密迁移到数据库
 async def migrate_fedi() -> None:
     """Migrate Fediverse secrets and client infomation from files in secrets/"""
-    secrets_file_path = Path("../secrets")
+    secrets_file_path = Path("./secrets")
     if not secrets_file_path.exists() or not secrets_file_path.is_dir():
         print("No Fediverse secrets to migrate. Skipping.")
         return
@@ -126,6 +126,8 @@ async def migrate() -> None:
     await Tortoise.close_connections()
 
 if __name__ == '__main__':
+    print("If the script find nothing to migrate, please make sure you run this script in the project root directory where the JSON files and secrets/ directory are located.")
+    print("To make things easier, you can rerun the script using `python -m helpers.migrate` from the project root directory.")
     resp = input("This will overwrite existing data in the database. Continue? [y/N]: ").strip().lower()
     if resp in ("y", "yes"):
         asyncio.run(migrate())

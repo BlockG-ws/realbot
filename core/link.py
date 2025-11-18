@@ -229,6 +229,11 @@ async def reserve_whitelisted_params(url):
                 new_query_params[param] = query_params[param]
         cleaned_query = urlencode(new_query_params, doseq=True)
         return urlunparse(parsed_url._replace(query=cleaned_query))
+    elif parsed_url.hostname == 'images.unsplash.com' and query_params:
+        # Unsplash 图片直链不保留任何参数，直接返回原图链接
+        new_query_params = {}
+        cleaned_query = urlencode(new_query_params, doseq=True)
+        return urlunparse(parsed_url._replace(query=cleaned_query))
     return url
 
 def transform_into_fixed_url(url):

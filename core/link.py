@@ -46,11 +46,19 @@ async def extend_short_urls(url):
                         async with session.get(redirect_url, allow_redirects=True) as r_all_direct:
                             if r_all_direct.status == 200 and r_all_direct.url != url:
                                 return str(r_all_direct.url)
+                    # 如果 Location 只是为路径末尾添加了 / 或者去除 / 也直接返回原链接
+                    if (redirect_url.endswith('/') and url == redirect_url[:-1]) or (url.endswith('/') and url[:-1] == redirect_url):
+                        return url
                     return redirect_url
                 else:
                     # 如果 Location 头部没有 http 前缀，可能是相对路径
-                    # 需要将其转换正确的链接
-                    return urlparse(url)._replace(path=redirect_url).geturl()
+                    # 先将其转换为完整链接
+                    full_redirect_url = urlparse(url)._replace(path=redirect_url).geturl()
+                    # 如果只是为路径末尾添加了 / 或者去除 / 也直接返回原链接
+                    if (full_redirect_url.endswith('/') and url == full_redirect_url[:-1]) or (url.endswith('/') and url[:-1] == full_redirect_url):
+                        return url
+                    # 其它情况下，直接返回完整的、正确的链接
+                    return full_redirect_url
             elif not r.status in [200,403,404,502,503]:
                 # 对于一些需要“正常”浏览器才能访问的链接，尝试修复
                 async with session.get(url, allow_redirects=False, headers={'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.48 Safari/537.36'}) as r_fix:

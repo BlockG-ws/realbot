@@ -9,6 +9,7 @@ from aiogram.utils.formatting import Text, ExpandableBlockQuote, TextLink
 
 from core.link import clean_link_in_text
 
+fake_edge_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"
 
 async def handle_inline_query(query: InlineQuery):
     """
@@ -151,11 +152,12 @@ async def handle_inline_query(query: InlineQuery):
     if query_text.startswith("b23"):
         b23_query = query_text.replace("b23", "",1).strip()
         b23_resp = None
-
-        async with aiohttp.ClientSession() as session:
+        # 创建一个 cookie 存储
+        b23_cookie = aiohttp.CookieJar(unsafe=True)
+        async with aiohttp.ClientSession(cookie_jar=b23_cookie) as session:
             # 先访问 bilibili.com 获取 cookies
             async with session.get('https://bilibili.com', headers={
-                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"}) as response:
+                "user-agent": fake_edge_ua }) as response:
                 pass
 
             # 使用获取的 cookies 请求搜索 API
@@ -164,7 +166,7 @@ async def handle_inline_query(query: InlineQuery):
                     'https://api.bilibili.com/x/web-interface/search/all/v2',
                     params=params,
                     headers={
-                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"
+                        "user-agent": fake_edge_ua
                     }
             ) as response:
                 b23_resp = await response.json()
@@ -183,6 +185,21 @@ async def handle_inline_query(query: InlineQuery):
                     play = video.get('play', 0)
                     thumbnail = f"https:{video.get('pic')}"
                     description = video.get('description', '')
+
+                    async with aiohttp.ClientSession(cookie_jar=b23_cookie) as session:
+                        # 因为b站搜索API会把简介截断，所以再使用获取视频信息的API获取一次简介
+                        async with session.get(
+                                'https://api.bilibili.com/x/web-interface/view',
+                                params={'bvid': bvid},
+                                headers={ "user-agent": fake_edge_ua }) as vid_info_resp:
+                            vid_info_data = (await vid_info_resp.json()).get('data', {})
+                            if vid_info_data:
+                                desc_v2 = vid_info_data.get('desc_v2', {})
+                                if desc_v2 and desc_v2[0].get('type') == 2:  # type 2 是有 @ 他人的简介
+                                    new_desc = desc_v2.get('raw_text','')
+                                else:
+                                    new_desc = vid_info_data.get('desc','')
+                                description = new_desc or description
 
                     search_results.append(InlineQueryResultArticle(
                         id=str(i + 1),

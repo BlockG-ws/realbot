@@ -25,6 +25,8 @@ async def handle_lottery_command(message: Message, state: FSMContext):
         await message.reply("请在私聊中使用此命令。")
         return
     if message.chat.type == 'private' and args and args[0] == 'p':
+        # 清除 FSM 状态，防止后续任意文本被当作创建抽奖的输入
+        await state.clear()
         if len(args) != 2 or ':' not in args[1]:
             await message.reply("用法：/lottery p <lottery_id>:<token>\n例如：/lottery p 123:my_secret_token")
             return
@@ -354,6 +356,7 @@ async def handle_lottery_use_token(message: Message, state: FSMContext):
                                 "结束时间：{}\n\n".format(data.get('end_time',"不限")) +
                                 f"你可以通过向 @{bot_username} 发送 <code>/lottery p {lottery_id}:{token_text}</code> 来参与这个抽奖")
         await message.reply("抽奖活动已成功创建！请向要参与抽奖的用户发送以上信息以告知他们参与抽奖\n")
+        await state.clear()
     except Exception as e:
         await message.reply("无法创建抽奖活动\n错误信息：{}".format(e))
         await state.set_state(LotteryForm.join_method)

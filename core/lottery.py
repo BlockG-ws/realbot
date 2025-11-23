@@ -24,41 +24,73 @@ async def handle_lottery_command(message: Message, state: FSMContext):
     if message.chat.type != 'private':
         await message.reply("请在私聊中使用此命令。")
         return
-    if message.chat.type == 'private' and args and args[0] == 'p':
+    if message.chat.type == 'private' and args:
         # 清除 FSM 状态，防止后续任意文本被当作创建抽奖的输入
         await state.clear()
-        if len(args) != 2 or ':' not in args[1]:
-            await message.reply("用法：/lottery p <lottery_id>:<token>\n例如：/lottery p 123:my_secret_token")
+        if args[0] == 'p':
+            if len(args) != 2 or ':' not in args[1]:
+                await message.reply("用法：/lottery p <lottery_id>:<token>\n例如：/lottery p 123:my_secret_token")
+                return
+            lottery_id_str, token_text = args[1].split(':', 1)
+            try:
+                lottery_id = int(lottery_id_str)
+            except ValueError:
+                await message.reply("无效的 lottery_id，请确保它是一个整数。")
+                return
+            import hashlib
+            token = hashlib.sha512(token_text.encode('utf-8')).hexdigest()
+            from adapters.db.lottery import get_lottery_info, update_lottery_info
+            creator_id = (await get_lottery_info(lottery_id=lottery_id,chat_id=None)).get('creator', {}).get('id')
+            lottery = await get_lottery_info(chat_id=None, lottery_id=lottery_id)
+            if not lottery or lottery.get('is_ended'):
+                await message.reply("该抽奖活动已结束或不存在。")
+                return
+            if lottery.get('token') != token:
+                await message.reply("无效的 token，无法参与该抽奖活动。")
+                return
+            participants = lottery.get('participants', [])
+            user_id = message.from_user.id
+            if user_id in participants:
+                await message.reply("你已经参与了该抽奖活动。")
+                return
+            participants.append(user_id)
+            await update_lottery_info(chat_id=None, lottery_data={'participants': participants}, lottery_id=lottery_id)
+            await message.reply("你已成功参与抽奖！祝你好运！")
+            # 如果达到了最大参与人数，立即开奖
+            if len(participants) == lottery.get('max_participants', float('inf')):
+                await handle_draw_lottery(message.bot,lottery_id, chat_id=creator_id)
             return
-        lottery_id_str, token_text = args[1].split(':', 1)
-        try:
-            lottery_id = int(lottery_id_str)
-        except ValueError:
-            await message.reply("无效的 lottery_id，请确保它是一个整数。")
-            return
-        import hashlib
-        token = hashlib.sha512(token_text.encode('utf-8')).hexdigest()
-        from adapters.db.lottery import get_lottery_info, update_lottery_info
-        creator_id = (await get_lottery_info(lottery_id=lottery_id,chat_id=None)).get('creator', {}).get('id')
-        lottery = await get_lottery_info(chat_id=None, lottery_id=lottery_id)
-        if not lottery or lottery.get('is_ended'):
-            await message.reply("该抽奖活动已结束或不存在。")
-            return
-        if lottery.get('token') != token:
-            await message.reply("无效的 token，无法参与该抽奖活动。")
-            return
-        participants = lottery.get('participants', [])
-        user_id = message.from_user.id
-        if user_id in participants:
-            await message.reply("你已经参与了该抽奖活动。")
-            return
-        participants.append(user_id)
-        await update_lottery_info(chat_id=None, lottery_data={'participants': participants}, lottery_id=lottery_id)
-        await message.reply("你已成功参与抽奖！祝你好运！")
-        # 如果达到了最大参与人数，立即开奖
-        if len(participants) == lottery.get('max_participants', float('inf')):
+        elif args[0] == 'draw':
+            if len(args) != 2:
+                await message.reply("用法：/lottery draw [lottery_id]\n例如：/lottery draw 123")
+                return
+            lottery_id_str = args[1]
+            try:
+                lottery_id = int(lottery_id_str)
+            except ValueError:
+                await message.reply("无效的 lottery_id，请确保它是一个整数。")
+                return
+            from adapters.db.lottery import get_lottery_info
+            lottery = await get_lottery_info(chat_id=None, lottery_id=lottery_id)
+            if not lottery:
+                await message.reply("该抽奖活动不存在。")
+                return
+            creator_id = lottery.get('creator', {}).get('id')
+            participants = lottery.get('participants', [])
+            number_of_winners = lottery.get('number_of_winners', 1)
+            if message.from_user.id != creator_id:
+                await message.reply("只有抽奖创建者才能手动开奖。")
+                return
+
+            if lottery.get('is_ended', False):
+                await message.reply("该抽奖活动已结束，无法重复开奖。")
+                return
+
+            if len(participants) < number_of_winners:
+                await message.reply("参与人数不足，无法开奖。当前有{}人参与，需要至少{}人方可开奖。".format(len(participants), number_of_winners))
+                return
             await handle_draw_lottery(message.bot,lottery_id, chat_id=creator_id)
-        return
+            return
     await message.reply("现在创建抽奖活动。\n请输入抽奖的标题。一个好的抽奖标题可以吸引更多人参与！")
     await state.set_state(LotteryForm.title)
 

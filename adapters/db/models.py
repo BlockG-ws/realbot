@@ -53,6 +53,7 @@ class FediUserTokens(models.Model):
 
 class ChannelWhiteList(models.Model):
     chat_id = fields.BigIntField(index=True)
+    linked_info = fields.JSONField(null=True,default=lambda: {"id": None, "fullname": None, "username": None})
     whitelist = fields.JSONField(null=True,default=list)
     also_ban = fields.BooleanField(default=False)
 

@@ -17,6 +17,7 @@ from core.inline import handle_inline_query
 from core.ip import handle_ip_command
 from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
+from core.middleware.anti_fake_channel import AntiFakeChannelUsersMiddleware
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
@@ -42,6 +43,7 @@ class TelegramAdapter:
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
+        self.anti_fake_channel_middleware = AntiFakeChannelUsersMiddleware()
         self._setup_middleware()
         self._setup_handlers()
         session = None
@@ -141,6 +143,7 @@ class TelegramAdapter:
         """注册中间件"""
         self.dp.message.middleware(self.stats_middleware)
         self.dp.message.middleware(self.channel_unpin_middleware)
+        self.dp.message.middleware(self.anti_fake_channel_middleware)
 
     async def start(self):
         """Start the Telegram bot"""

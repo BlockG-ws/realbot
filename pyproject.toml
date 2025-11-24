@@ -17,4 +17,5 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
     "tortoise-orm==0.25.1",
+    "unidecode==1.4.0",
 ]

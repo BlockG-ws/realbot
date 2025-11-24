@@ -5,10 +5,23 @@ async def get_whitelist(chat_id: int) -> dict:
     whitelist = await ChannelWhiteList.get_or_none(chat_id=chat_id).values()
     return whitelist['whitelist'] if whitelist else []
 
+async def get_linked_channel_info(chat_id: int) -> dict:
+    """Retrieve linked channel information for a specific chat_id."""
+    data = await ChannelWhiteList.get_or_none(chat_id=chat_id).values()
+    if data:
+        return data['linked_info']
+    return {"id": None, "fullname": None, "username": None}
+
 async def add_whitelist(chat_id: int, channel: int) -> None:
     """Update whitelist for a specific chat_id."""
     data, created = await ChannelWhiteList.get_or_create(chat_id=chat_id)
     data.whitelist.append(channel)
+    await data.save()
+
+async def update_linked_channel_info(chat_id: int, linked_id: int, linked_fullname: str, linked_username: str) -> None:
+    """Update linked channel information for a specific chat_id."""
+    data, created = await ChannelWhiteList.get_or_create(chat_id=chat_id)
+    data.linked_info = {"id":linked_id, "fullname":linked_fullname, "username":linked_username}
     await data.save()
 
 async def remove_whitelist(chat_id: int, channel: int) -> None:

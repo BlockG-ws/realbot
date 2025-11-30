@@ -475,6 +475,18 @@ async def handle_inline_query(query: InlineQuery):
                                     ))
                                     i += 1
                 await query.answer(results=result, cache_time=3600)
+            else:
+                await query.answer(results=[
+                    InlineQueryResultArticle(
+                        id="1",
+                        title="未知的的查询类型",
+                        input_message_content=InputTextMessageContent(
+                            message_text="支持的查询： 'wiki', 'packages/pkg/package', 'aur'",
+                            parse_mode=ParseMode.MARKDOWN
+                        ),
+                        description="请使用有效的搜索类型。"
+                    )
+                ], cache_time=0)
         else:
             await query.answer(results=[
                 InlineQueryResultArticle(

@@ -32,12 +32,17 @@ async def extend_short_urls(url):
     """ 扩展短链接 """
     async with aiohttp.ClientSession() as session:
         async with session.get(url,allow_redirects=False) as r:
+            html_content = await r.text()
             if 'tb.cn' in urlparse(url).hostname:
                 # 淘宝短链接特殊处理
-                html_content = await r.text()
-                url = extract_tb_url_from_html(html_content)
-                if not url:
-                    return url
+                decoded_url = extract_tb_url_from_html(html_content)
+                if decoded_url:
+                    return decoded_url
+            if r.status == 200 and 'meta http-equiv' in html_content:
+                # 处理 meta refresh 重定向
+                meta_refresh_url = check_meta_refresh(html_content)
+                if meta_refresh_url:
+                    return meta_refresh_url
             if r.status in [301, 302, 304, 307, 308] and 'Location' in r.headers:
                 redirect_url = r.headers['Location']
                 if redirect_url.startswith(('http://', 'https://')):
@@ -48,6 +53,11 @@ async def extend_short_urls(url):
                                 return str(r_all_direct.url)
                     # 如果 Location 只是为路径末尾添加了 / 或者去除 / 也直接返回原链接
                     if (redirect_url.endswith('/') and url == redirect_url[:-1]) or (url.endswith('/') and url[:-1] == redirect_url):
+                        if 'meta http-equiv' in html_content:
+                            # 处理 meta refresh 重定向
+                            meta_refresh_url = check_meta_refresh(html_content)
+                            if meta_refresh_url:
+                                return meta_refresh_url
                         return url
                     return redirect_url
                 else:
@@ -56,6 +66,11 @@ async def extend_short_urls(url):
                     full_redirect_url = urlparse(url)._replace(path=redirect_url).geturl()
                     # 如果只是为路径末尾添加了 / 或者去除 / 也直接返回原链接
                     if (full_redirect_url.endswith('/') and url == full_redirect_url[:-1]) or (url.endswith('/') and url[:-1] == full_redirect_url):
+                        if 'meta http-equiv' in html_content:
+                            # 处理 meta refresh 重定向
+                            meta_refresh_url = check_meta_refresh(html_content)
+                            if meta_refresh_url:
+                                return meta_refresh_url
                         return url
                     # 其它情况下，直接返回完整的、正确的链接
                     return full_redirect_url
@@ -89,6 +104,17 @@ def extract_tb_url_from_html(html_content):
         return decoded_url
     return None
 
+def check_meta_refresh(html_content):
+    # 使用正则表达式匹配 <meta http-equiv="refresh" content="0;url=..."> 的模式
+    pattern = r'<meta http-equiv=[\"\']refresh[\"\'] content=[\"\']\d+\s?;\s?url=([^\"\']+)[\"\']'
+    match = re.search(pattern, html_content, re.IGNORECASE)
+
+    if match:
+        url = match.group(1)
+        # 解码HTML实体
+        decoded_url = html.unescape(url)
+        return decoded_url
+    return None
 
 # Assume clearurls_rules is a dict loaded from the JSON
 def remove_tracking_params(url, rules):

@@ -2,12 +2,13 @@ import asyncio
 import logging
 import os
 
-from nio import AsyncClient, MatrixRoom, RoomMessageText
+from nio import AsyncClient, MatrixRoom, RoomMessageText, RoomMessageNotice
 from nio.events.room_events import RoomMessageText
 from typing import Dict, Callable
 
 import config
 from core.link import handle_matrix_links
+from core.matrix.copy_notice_event import copy_notice_as_text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,7 @@ class MatrixAdapter:
 
         # Register event handlers
         self.client.add_event_callback(self.message_callback, RoomMessageText)
+        self.client.add_event_callback(self.notice_callback, RoomMessageNotice)
 
     def add_command(self, command: str, handler: Callable):
         """Add a command handler."""
@@ -46,7 +48,6 @@ class MatrixAdapter:
         if event.sender == self.user_id:
             return
 
-        # Check if message starts with command prefix
         message = event.body.strip()
 
         # Parse command and arguments
@@ -64,6 +65,13 @@ class MatrixAdapter:
                 logger.error(f"Error executing command {command}: {e}")
                 await self.send_message(room.room_id, f"Error executing command: {str(e)}")
         await handle_matrix_links(room, event, self.client)
+
+    async def notice_callback(self, room: MatrixRoom, event: RoomMessageNotice):
+        """Handle incoming notices."""
+        # Ignore messages from the bot itself
+        if event.sender == self.user_id:
+            return
+        await copy_notice_as_text(self.client, room, event)
 
     async def send_message(self, room_id: str, message: str):
         """Send a message to a room."""

@@ -16,6 +16,12 @@ class Config(models.Model):
     class Meta:
         table = "config"
 
+class MatrixSyncTokens(models.Model):
+    matrix_id = fields.CharField(index=True,unique=True,max_length=1024)
+    sync_token = fields.CharField(max_length=256)
+
+    class Meta:
+        table = "matrix_sync_tokens"
 
 class Stats(models.Model):
     chat_id = fields.BigIntField(index=True,unique=True)

@@ -62,3 +62,7 @@ features:
   unpin:
     enable: false
     regex: "r'#pin'"
+
+# 为启用了桥接的群组复制 m.notice 格式的消息，方便互通
+"!r2KkNsQnlSeGRkwU:matrix.ltd":
+  copy_notice_event: true

@@ -18,11 +18,6 @@ from adapters.db.sync_tokens import get_sync_token, update_sync_token
 from core.link import handle_matrix_links
 from core.matrix.copy_notice_event import copy_notice_as_text
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
 class MatrixAdapter:
     def __init__(
         self,
@@ -71,19 +66,19 @@ class MatrixAdapter:
         if response.next_batch:
             try:
                 await update_sync_token(self.user_id, response.next_batch)
-                logger.debug(f"Saved sync token: {response.next_batch[:20]}...")
+                logging.debug(f"Saved sync token: {response.next_batch[:20]}...")
             except Exception as e:
-                logger.error(f"Failed to save sync token: {e}")
+                logging.error(f"Failed to save sync token: {e}")
 
     async def _load_sync_token(self) -> Union[str, None]:
         """load sync token from database"""
         try:
             token = await get_sync_token(self.user_id)
             if token:
-                logger.info(f"Loaded sync token: {token[:20]}...")
+                logging.info(f"Loaded sync token: {token[:20]}...")
                 return token
         except Exception as e:
-            logger.error(f"Failed to load sync token: {e}")
+            logging.error(f"Failed to load sync token: {e}")
         return None
 
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText):
@@ -106,7 +101,7 @@ class MatrixAdapter:
                 if response:
                     await self.send_message(room.room_id, response)
             except Exception as e:
-                logger.error(f"Error executing command {command}: {e}")
+                logging.error(f"Error executing command {command}: {e}")
                 await self.send_message(
                     room.room_id, f"Error executing command: {str(e)}"
                 )
@@ -139,7 +134,7 @@ class MatrixAdapter:
 
     async def start(self):
         """Start the bot."""
-        logger.info("Starting Matrix bot...")
+        logging.info("Starting Matrix bot...")
 
         # auth
         self.client.access_token = self.token
@@ -150,11 +145,11 @@ class MatrixAdapter:
         saved_token = await self._load_sync_token()
         if saved_token:
             self.client.next_batch = saved_token
-            logger.info("Resuming from previous sync position")
+            logging.info("Resuming from previous sync position")
         else:
-            logger.info("Starting fresh sync (no previous token)")
+            logging.info("Starting fresh sync (no previous token)")
 
-        logger.info(f"Logged in as {self.user_id}")
+        logging.info(f"Logged in as {self.user_id}")
 
         # Sync and listen for events
         try:
@@ -167,15 +162,15 @@ class MatrixAdapter:
             )
             await self._sync_task
         except KeyboardInterrupt:
-            logger.info("Keyboard interrupt received, shutting down...")
+            logging.info("Keyboard interrupt received, shutting down...")
         except asyncio.CancelledError:
-            logger.info("Sync loop cancelled, shutting down...")
+            logging.info("Sync loop cancelled, shutting down...")
         finally:
             await self.client.close()
 
     async def stop(self):
         """Stop the bot gracefully."""
-        logger.info("Stopping Matrix bot...")
+        logging.info("Stopping Matrix bot...")
         try:
             if (
                 hasattr(self, "_sync_task")
@@ -190,7 +185,7 @@ class MatrixAdapter:
             # Close the client connection
             await self.client.close()
         except Exception as e:
-            logger.error(f"Error during shutdown: {e}")
+            logging.error(f"Error during shutdown: {e}")
 
 
 # command handlers
@@ -225,7 +220,7 @@ async def main():
         import signal
 
         def signal_handler(signum, frame):
-            logger.info(f"Received signal {signum}, initiating shutdown...")
+            logging.info(f"Received signal {signum}, initiating shutdown...")
             loop = asyncio.get_event_loop()
             loop.create_task(bot.stop())
             if not loop.is_running():
@@ -236,13 +231,13 @@ async def main():
 
         await bot.start()
     except KeyboardInterrupt:
-        logger.info("Shutdown signal received")
+        logging.info("Shutdown signal received")
         await bot.stop()
     except Exception as e:
-        logger.error(f"Bot error: {e}")
+        logging.error(f"Bot error: {e}")
     finally:
         # Make sure to close the client connection on disconnect
-        logger.info("Shutting down matrix bot...")
+        logging.info("Shutting down matrix bot...")
         await bot.stop()
 
 

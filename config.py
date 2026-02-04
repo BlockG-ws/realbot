@@ -132,14 +132,13 @@ class Config:
         except Exception as e:
             logging.warning(f"获取群组 {chat_id} 配置时出错",e)
 
-    async def is_feature_enabled(self, feature_name: str, chat_id: Optional[int] = None, room_id: Optional[str] = "") -> bool:
+    async def is_feature_enabled(self, feature_name: str, chat_id: Optional[int|str] = None) -> bool:
         """
         Check if a feature is enabled for a specific chat or globally
 
         Args:
             feature_name: Name of the feature (e.g., 'actions', 'bitflip', 'link')
-            chat_id: Telegram Chat ID to check group-specific settings (optional)
-            room_id: Matrix Chat ID to check group-specific settings (optional)
+            chat_id: Chat ID to check group-specific settings (optional)
         Returns:
             bool: True if feature is enabled, False otherwise
         """
@@ -155,10 +154,6 @@ class Config:
                     return is_enabled.get('enable')
             except Exception:
                 logging.warning(f"从数据库获取 {feature_name} 配置时出错，使用文件配置作为后备")
-            group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config and group_config[feature_name]['enable'] is not None:
-                return group_config[feature_name].get('enable')
-        if room_id:
             group_config = self.config_data.get(chat_id, {})
             if feature_name in group_config and group_config[feature_name]['enable'] is not None:
                 return group_config[feature_name].get('enable')

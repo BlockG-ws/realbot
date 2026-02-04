@@ -10,7 +10,7 @@ async def copy_notice_as_text(client: AsyncClient, room: MatrixRoom, event: Room
     If the incoming event is an m.notice, resend the same content as m.text
     preserving formatted body and the m.relates_to (reply) state.
     """
-    enabled = config.is_feature_enabled('copy_notice_event', room_id=room.room_id)
+    enabled = await config.is_feature_enabled('copy_notice_event', room.room_id)
     if not enabled:
         return
     src = getattr(event, "source", {}) or {}
@@ -56,7 +56,7 @@ async def copy_notice_as_text(client: AsyncClient, room: MatrixRoom, event: Room
         if original_sender_text:
             # append HTML-safe original sender information
             escaped = _escape_html(original_sender)
-            formatted += f"<br><br><strong>Original sender:</strong> {escaped}"
+            formatted += f"<br><strong>send by </strong> {escaped}"
             if display_name:
                 formatted += f" ({_escape_html(display_name)})"
         new_content["formatted_body"] = formatted

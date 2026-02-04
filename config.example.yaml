@@ -58,6 +58,7 @@ features:
   # 要启用的功能
   actions:
     enable: true
+  # 或者也可以直接写： actions: true，参数保持全局默认
   unpin:
     enable: false
     regex: "r'#pin'"

@@ -12,10 +12,10 @@ class Config:
         self.config_path = Path(config_path)
         self.config_data = self._load_config()
 
-    def _load_config(self) ->  Dict[Union[str, int], Any]:
+    def _load_config(self) -> Dict[Union[str, int], Any]:
         """Load configuration from YAML file"""
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as file:
+            with open(self.config_path, "r", encoding="utf-8") as file:
                 return yaml.safe_load(file) or {}
         except FileNotFoundError:
             return {}
@@ -25,11 +25,11 @@ class Config:
 
     def get_admin_id(self) -> Optional[int]:
         """Get admin user ID"""
-        return self.config_data.get('admin')
+        return self.config_data.get("admin")
 
     def get_developer_id(self) -> Optional[int]:
         """Get developer user ID"""
-        return self.config_data.get('dev')
+        return self.config_data.get("dev")
 
     def get_config_value(self, key: str, default: Any = None) -> Any:
         """
@@ -42,7 +42,7 @@ class Config:
         Returns:
             The configuration value or default if not found
         """
-        keys = key.split('.')
+        keys = key.split(".")
         value = self.config_data
 
         for k in keys:
@@ -62,11 +62,13 @@ class Config:
         Returns:
             bool: True if feature is enabled, False otherwise
         """
-        global_features = self.config_data.get('features', {})
+        global_features = self.config_data.get("features", {})
         feature_config = global_features.get(feature_name, {})
-        return feature_config.get('enable', False)
+        return feature_config.get("enable", False)
 
-    async def get_group_config(self, chat_id: int) -> None | dict[str, Any] | dict[Any, Any] | dict:
+    async def get_group_config(
+        self, chat_id: int
+    ) -> None | dict[str, Any] | dict[Any, Any] | dict:
         """
         Get configuration for a specific group chat
 
@@ -76,7 +78,9 @@ class Config:
             dict: Group configuration
         """
 
-        def _fill_none(primary: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+        def _fill_none(
+            primary: Dict[str, Any], fallback: Dict[str, Any]
+        ) -> Dict[str, Any]:
             if not isinstance(primary, dict):
                 return primary if primary is not None else fallback
             result: Dict[str, Any] = {}
@@ -110,17 +114,19 @@ class Config:
 
         try:
             db_config = await get_config(chat_id)
-            file_cfg = self.config_data.get(chat_id, {}) or self.config_data.get(str(chat_id),{})
+            file_cfg = self.config_data.get(chat_id, {}) or self.config_data.get(
+                str(chat_id), {}
+            )
             file_cfg = _normalize_enabled_dicts(file_cfg)
             if not db_config:
                 if file_cfg:
-                    global_features = self.config_data.get('features', {})
+                    global_features = self.config_data.get("features", {})
                     global_features = _normalize_enabled_dicts(global_features)
                     return _fill_none(file_cfg, global_features)
                 # Fallback to global features if neither DB nor file has group config
-                return self.config_data.get('features', {})
+                return self.config_data.get("features", {})
             else:
-                global_features = self.config_data.get('features', {})
+                global_features = self.config_data.get("features", {})
                 global_features = _normalize_enabled_dicts(global_features)
                 if file_cfg:
                     db_config = _fill_none(db_config, file_cfg)
@@ -130,9 +136,11 @@ class Config:
                     db_config = _fill_none(db_config, global_features)
             return db_config
         except Exception as e:
-            logging.warning(f"获取群组 {chat_id} 配置时出错",e)
+            logging.warning(f"获取群组 {chat_id} 配置时出错", e)
 
-    async def is_feature_enabled(self, feature_name: str, chat_id: Optional[int|str] = None) -> bool:
+    async def is_feature_enabled(
+        self, feature_name: str, chat_id: Optional[int | str] = None
+    ) -> bool:
         """
         Check if a feature is enabled for a specific chat or globally
 
@@ -142,7 +150,17 @@ class Config:
         Returns:
             bool: True if feature is enabled, False otherwise
         """
-        if not feature_name != "copy_notice_event" and not self.is_global_feature_enabled(feature_name):
+        if feature_name == "copy_notice_event" and type(chat_id) is str:
+            group_config = self.config_data.get(chat_id, {})
+            if feature_name in group_config:
+                feature_value = group_config[feature_name]
+                # Handle both bool and dict formats
+                if isinstance(feature_value, bool):
+                    return feature_value
+                elif isinstance(feature_value, dict) and "enable" in feature_value:
+                    return feature_value.get("enable", False)
+            return False
+        if not self.is_global_feature_enabled(feature_name):
             return False
         # Check group-specific settings
         if chat_id:
@@ -150,18 +168,28 @@ class Config:
                 is_enabled = await get_config_value(chat_id, feature_name)
                 if isinstance(is_enabled, bool):
                     return is_enabled
-                elif isinstance(is_enabled, dict) and 'enable' in is_enabled:
-                    return is_enabled.get('enable')
+                elif isinstance(is_enabled, dict) and "enable" in is_enabled:
+                    return is_enabled.get("enable")
             except Exception:
-                logging.warning(f"从数据库获取 {feature_name} 配置时出错，使用文件配置作为后备")
+                logging.warning(
+                    f"从数据库获取 {feature_name} 配置时出错，使用文件配置作为后备"
+                )
             group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config and group_config[feature_name]['enable'] is not None:
-                return group_config[feature_name].get('enable')
+            if feature_name in group_config:
+                feature_value = group_config[feature_name]
+                # Handle both bool and dict formats
+                if isinstance(feature_value, bool):
+                    return feature_value
+                elif isinstance(feature_value, dict) and "enable" in feature_value:
+                    enable_value = feature_value.get("enable")
+                    if enable_value is not None:
+                        return enable_value
             return self.is_global_feature_enabled(feature_name)
         return False
 
-
-    async def get_feature_config(self, feature_name: str, chat_id: Optional[int] = None) -> Dict[str, Any]:
+    async def get_feature_config(
+        self, feature_name: str, chat_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Get complete configuration for a feature
 
@@ -182,7 +210,7 @@ class Config:
                 return group_config[feature_name]
 
         # Fall back to global settings
-        global_features = self.config_data.get('features', {})
+        global_features = self.config_data.get("features", {})
         return global_features.get(feature_name, {})
 
 

@@ -51,6 +51,9 @@ features:
   anti_anonymous:
     enable: false
     # 其它选项需要在群组内配置
+  # 启用火星消息提示
+  mars:
+    enable: false
 
 # group features settings
 # 群组 id，使用 bot api（bot 内置的 info 命令）

@@ -28,6 +28,7 @@ from core.lottery import router as lottery_router, handle_lottery_command
 from core.mc import handle_mc_status_command
 #from core.tarot_parse import router as tarot_parse_router, handle_tarot_parse_command
 from core.middleware.anti_fake_channel import AntiFakeChannelUsersMiddleware
+from core.middleware.mars import MARSMiddleware
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
@@ -63,6 +64,7 @@ class TelegramAdapter:
         self.stats_middleware = MessageStatsMiddleware()
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
         self.anti_fake_channel_middleware = AntiFakeChannelUsersMiddleware()
+        self.mars_middleware = MARSMiddleware()
         self._setup_middleware()
         self._setup_handlers()
         session = None
@@ -176,6 +178,7 @@ class TelegramAdapter:
 
     def _setup_middleware(self):
         """注册中间件"""
+        self.dp.message.middleware(self.mars_middleware)
         self.dp.message.middleware(self.stats_middleware)
         self.dp.message.middleware(self.channel_unpin_middleware)
         self.dp.message.middleware(self.anti_fake_channel_middleware)

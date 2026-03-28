@@ -423,7 +423,7 @@ async def handle_inline_query(query: InlineQuery):
                         description=f"发送 {arg_value} 的搜索结果页面链接"
                     )]
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(f"{arg_value}&limit=4") as resp:
+                    async with session.get(f"https://wiki.archlinux.org/rest.php/v1/search/title?q={arg_value}&limit=4") as resp:
                         arch_pkgs_data = await resp.json()
                         if arch_pkgs_data and len(arch_pkgs_data['pages']) >= 0:
                             i=2

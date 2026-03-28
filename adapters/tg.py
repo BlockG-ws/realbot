@@ -29,12 +29,13 @@ from core.mc import handle_mc_status_command
 #from core.tarot_parse import router as tarot_parse_router, handle_tarot_parse_command
 from core.middleware.anti_fake_channel import AntiFakeChannelUsersMiddleware
 from core.middleware.mars import MARSMiddleware
+from core.middleware.meme import ThreeKingdomsMiddleWare
 from core.post_to_fedi import router as fedi_router
 
 from core.bitflip import handle_bitflip_command
 from core.link import handle_tg_links
 from core.post_to_fedi import handle_auth, handle_post_to_fedi
-from core.promote import handle_promote_command
+from core.promote import handle_promote_command, handle_demote_command
 from core.repeater import MessageRepeater
 from core.report_links import report_broken_links
 from core.simple import (
@@ -65,6 +66,7 @@ class TelegramAdapter:
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
         self.anti_fake_channel_middleware = AntiFakeChannelUsersMiddleware()
         self.mars_middleware = MARSMiddleware()
+        self.meme_middleware = ThreeKingdomsMiddleWare()
         self._setup_middleware()
         self._setup_handlers()
         session = None
@@ -108,6 +110,7 @@ class TelegramAdapter:
         router.message(Command("config"))(handle_config_command)
         # promote 模块
         router.message(Command("t"))(handle_promote_command)
+        router.message(Command("td"))(handle_demote_command)
         # stats 模块
         router.message(Command("stats"))(handle_stats_command)
         # fedi 模块
@@ -179,6 +182,7 @@ class TelegramAdapter:
     def _setup_middleware(self):
         """注册中间件"""
         self.dp.message.middleware(self.mars_middleware)
+        self.dp.message.middleware(self.meme_middleware)
         self.dp.message.middleware(self.stats_middleware)
         self.dp.message.middleware(self.channel_unpin_middleware)
         self.dp.message.middleware(self.anti_fake_channel_middleware)

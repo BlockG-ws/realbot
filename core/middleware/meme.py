@@ -15,8 +15,9 @@ class ThreeKingdomsMiddleWare(BaseMiddleware):
             event: Message,
             data: Dict[str, Any]
     ) -> Any:
-        text = event.text or event.caption
-        if 'group' in event.chat.type:
+
+        if 'group' in event.chat.type and (event.text or event.caption):
+            text = event.text or event.caption
             if "风从虎" in text and "云从龙" in text and not "龙虎英雄傲苍穹" in text:
                 await event.reply("龙虎英雄傲苍穹")
             if "吃什么" in text and not "是啊" in text:

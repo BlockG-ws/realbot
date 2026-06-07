@@ -53,6 +53,7 @@ def _parse_action(parts: list[str], default_ending: str = "了") -> tuple[str, s
 
     return (to_remove, replace_with, punctuation, content)
 
+special_verbs = ["把","让"]
 
 async def handle_actions(message: Message) -> None:
     if not await config.is_feature_enabled('actions', message.chat.id):
@@ -76,8 +77,9 @@ async def handle_actions(message: Message) -> None:
         if parts[0].replace('/','',1).isascii():
             return
         verb = parts[0].replace('/', '')
+        ending = "" if verb in special_verbs or verb.endswith("了") else "了"
         args = parts[1:]
-        to_remove, replace_with, punctuation, content = _parse_action(args)
+        to_remove, replace_with, punctuation, content = _parse_action(args, default_ending=ending)
         verb = verb.removesuffix(to_remove) + replace_with
         punc = "！" if punctuation is None else punctuation
         if content:

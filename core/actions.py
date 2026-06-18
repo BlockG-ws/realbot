@@ -51,9 +51,9 @@ def _parse_action(parts: list[str], default_ending: str = "了") -> tuple[str, s
     else:
         punctuation = " ".join(p_args)
 
-    return (to_remove, replace_with, punctuation, content)
+    return to_remove, replace_with, punctuation, content
 
-special_verbs = ["把","让"]
+special_verbs = ["把","让","使","帮","给","要"]
 
 async def handle_actions(message: Message) -> None:
     if not await config.is_feature_enabled('actions', message.chat.id):
@@ -100,8 +100,9 @@ async def handle_reverse_actions(message: Message) -> None:
     if " " in rawtext:
         parts = rawtext.split(" ")
         verb = parts[0].replace('\\', '')
+        ending = "" if verb in special_verbs or verb.endswith("了") else "了"
         args = parts[1:]
-        to_remove, replace_with, punctuation, content = _parse_action(args)
+        to_remove, replace_with, punctuation, content = _parse_action(args, default_ending=ending)
         verb = verb.removesuffix(to_remove) + replace_with
         punc = "！" if punctuation is None else punctuation
         if content:

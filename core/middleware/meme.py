@@ -27,8 +27,8 @@ class ThreeKingdomsMiddleWare(BaseMiddleware):
                     await event.reply("一把叫义之剑")
                 else:
                     await event.reply("可别逼我使出无情剑来")
-            if "酸" in text and not "不怕" in text and not "眼都酸了" in text:
-                await event.reply("可咱家说了咱家不怕酸，不怕！")
+            #if "酸" in text and not "不怕" in text and not "眼都酸了" in text:
+            #    await event.reply("可咱家说了咱家不怕酸，不怕！")
             if "眼都酸了" in text and not "膀子" in text and not "不酸" in text:
                 await event.reply("他们的膀子竟然不酸")
             if "我打了一辈子仗" in text and not "享受" in text:

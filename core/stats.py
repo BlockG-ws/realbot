@@ -18,29 +18,30 @@ async def handle_stats_command(message: Message):
         return
 
     stats_message = await message.reply("正在生成统计信息...")
-
+    user_stats = stats.users or {}
+    message_24h_stats = stats.messages_24h or {}
     # 按消息数量排序用户
     sorted_users = sorted(
-        stats['users'].items(),
+        user_stats.items(),
         key=lambda x: x[1]['message_count'],
         reverse=True
     )
-    active = stats.get('messages_24h', {}).get('active_users', {})
+    active = message_24h_stats.get('active_users', {})
     sorted_24h_users = sorted(
         [
-            (user_id, stats['users'].get(user_id) or stats['users'].get(int(user_id), {}))
+            (user_id, user_stats.get(user_id) or user_stats.get(int(user_id), {}))
             for user_id in active.keys()
         ],
         key=lambda x: active.get(x[0], 0),
         reverse=True
     )
     sorted_most_xm_users = sorted(
-        stats['users'].items(),
+        user_stats.items(),
         key=lambda x: x[1].get('xm_count',0),
         reverse=True
     )
     sorted_most_wocai_users = sorted(
-        stats['users'].items(),
+        user_stats.items(),
         key=lambda x: x[1].get('wocai_count',0),
         reverse=True
     )
@@ -48,10 +49,10 @@ async def handle_stats_command(message: Message):
 
     # 构建统计消息
     text = f"📊 群组统计\n\n"
-    text += f"总消息数: {stats['total_messages']}\n"
-    text += f"24小时内消息数: {stats['messages_24h']['message_count']}\n"
-    text += f"活跃用户数: {len(stats['users'])}\n"
-    text += f"24小时内活跃用户数:{len(stats['messages_24h']['active_users'])}\n\n"
+    text += f"总消息数: {stats.total_messages}\n"
+    text += f"24小时内消息数: {message_24h_stats['message_count']}\n"
+    text += f"活跃用户数: {len(user_stats)}\n"
+    text += f"24小时内活跃用户数:{len(message_24h_stats['active_users'])}\n\n"
     text += "🏆 发言排行榜:\n"
     text += "<blockquote expandable>"
     for i, (user_id, user_data) in enumerate(sorted_users[:10], 1):
@@ -62,7 +63,7 @@ async def handle_stats_command(message: Message):
     text += "<blockquote expandable>"
     for i, (user_id, user_data) in enumerate(sorted_24h_users[:10], 1):
         name = user_data['name'] or user_data['username'] or str(user_id)
-        text += f"{i}. {name}: {stats['messages_24h']['active_users'][user_id]} 条\n"
+        text += f"{i}. {name}: {message_24h_stats['active_users'][user_id]} 条\n"
     text += "</blockquote>\n\n"
     if sorted_most_xm_users and any(user_data['xm_count'] > 0 for _, user_data in sorted_most_xm_users):
         text += "\n🍋 羡慕统计:\n"

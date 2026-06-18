@@ -1,6 +1,6 @@
 from adapters.db.models import Stats
 
-async def get_group_stats(chat_id: int) -> dict[str, dict]:
+async def get_group_stats(chat_id: int) -> Stats:
     """Retrieve statistics for a specific group chat by chat_id."""
     stats, _ = await Stats.get_or_create(chat_id=chat_id)
     return stats

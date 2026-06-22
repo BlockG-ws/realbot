@@ -1,8 +1,12 @@
+import asyncio
 import logging
 from typing import Callable, Dict, Awaitable, Any
 from config import config
 from aiogram import BaseMiddleware
 from aiogram.types import Message
+
+UNPIN_MAX_RETRIES = 3
+UNPIN_RETRY_DELAY = 1.0
 
 
 class UnpinChannelMsgMiddleware(BaseMiddleware):
@@ -21,6 +25,7 @@ class UnpinChannelMsgMiddleware(BaseMiddleware):
                 await handle_unpin_channel_message(event)
         return await handler(event, data)
 
+
 async def handle_unpin_channel_message(message: Message):
     """Handle unpinning messages from linked channels without a specific hashtag"""
     if not await config.is_feature_enabled('unpin', message.chat.id):
@@ -38,7 +43,17 @@ async def handle_unpin_channel_message(message: Message):
                 return
         # Either no regex pattern or message doesn't match, proceed to unpin
         logging.debug('正在尝试取消频道消息的置顶')
-        await message.unpin()
-        return
+        for attempt in range(1, UNPIN_MAX_RETRIES + 1):
+            try:
+                result = await message.unpin()
+                if result:
+                    logging.debug(f'unpin 成功 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt})')
+                    return
+                logging.warning(f'unpin 返回 False (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES})')
+            except Exception as e:
+                logging.warning(f'unpin 调用异常 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES}): {e}')
+            if attempt < UNPIN_MAX_RETRIES:
+                await asyncio.sleep(UNPIN_RETRY_DELAY * attempt)
+        logging.error(f'unpin 最终失败 (chat={message.chat.id}, msg={message.message_id})，已重试 {UNPIN_MAX_RETRIES} 次')
     except Exception:
-        logging.exception('Error unpinning message')
+        logging.exception('Error in handle_unpin_channel_message')

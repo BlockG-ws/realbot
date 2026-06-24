@@ -7,6 +7,7 @@ from aiogram.types import Message
 
 UNPIN_MAX_RETRIES = 3
 UNPIN_RETRY_DELAY = 1.0
+UNPIN_VERIFY_DELAY = 1.5
 
 
 class UnpinChannelMsgMiddleware(BaseMiddleware):
@@ -47,9 +48,19 @@ async def handle_unpin_channel_message(message: Message):
             try:
                 result = await message.unpin()
                 if result:
-                    logging.debug(f'unpin 成功 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt})')
-                    return
-                logging.warning(f'unpin 返回 False (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES})')
+                    # 验证是否真的取消置顶了
+                    await asyncio.sleep(UNPIN_VERIFY_DELAY)
+                    try:
+                        chat = await message.bot.get_chat(message.chat.id)
+                        pinned = chat.pinned_message
+                        if pinned is None or pinned.message_id != message.message_id:
+                            logging.debug(f'unpin 成功 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt})')
+                            return
+                        logging.warning(f'unpin API 返回成功但消息仍被置顶 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES})')
+                    except Exception as ve:
+                        logging.warning(f'unpin 验证失败 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES}): {ve}')
+                else:
+                    logging.warning(f'unpin 返回 False (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES})')
             except Exception as e:
                 logging.warning(f'unpin 调用异常 (chat={message.chat.id}, msg={message.message_id}, attempt={attempt}/{UNPIN_MAX_RETRIES}): {e}')
             if attempt < UNPIN_MAX_RETRIES:

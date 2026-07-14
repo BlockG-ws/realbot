@@ -1,19 +1,35 @@
+from typing import Any, Callable, Awaitable, Dict
+
 import aiogram.types
 from collections import defaultdict
 import time
 
+from aiogram import BaseMiddleware
+from aiogram.dispatcher.event import event
+from aiogram.types import Message
+
 from config import config
 
 
-class MessageRepeater:
+class MessageRepeaterMiddleware(BaseMiddleware):
     def __init__(self, message_expiry_seconds=3600):  # 1 hour default
         self.message_counts = defaultdict(lambda: defaultdict(int))
         self.repeated_messages = defaultdict(set)
         self.message_timestamps = defaultdict(lambda: defaultdict(float))
+        self.message_ids = defaultdict(int)
         self.last_messages = defaultdict(str)  # Track last message in each chat
         self.expiry_seconds = message_expiry_seconds
+    async def __call__(
+                self,
+                handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+                event: Message,
+                data: Dict[str, Any]
+        ) -> Any:
+            if event.chat.type == 'supergroup':
+                await self.handle_repeat_message(event)
+            return await handler(event, data)
 
-    async def handle_message(self, message: aiogram.types.Message):
+    async def handle_repeat_message(self, message):
         """Handle incoming messages and repeat when a threshold is met"""
         chat_id = message.chat.id
         if message.text:
@@ -21,7 +37,7 @@ class MessageRepeater:
         elif message.sticker:
             content = message.sticker.file_id
         elif message.photo:
-            content = message.photo[0].file_id
+            content = message.photo[0].file_id + message.caption
         else:
             return
 
@@ -34,6 +50,8 @@ class MessageRepeater:
         # Increment message count
         self.message_counts[chat_id][content] += 1
         self.message_timestamps[chat_id][content] = time.time()
+        self.message_ids[chat_id] = message.message_id
+        # remove the message upon deletion is impossible because the update is unavailable
 
         # If a message appears twice and hasn't been repeated yet
         if (content == self.last_messages[chat_id] and

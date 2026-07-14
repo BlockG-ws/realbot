@@ -25,7 +25,7 @@ from core.cfg import handle_config_command
 from core.inline import handle_inline_query
 from core.ip import handle_ip_command
 from core.lottery import router as lottery_router, handle_lottery_command
-from core.mc import handle_mc_status_command
+from core.mc import handle_mc_status_command, handle_guest_mc_status_command
 #from core.tarot_parse import router as tarot_parse_router, handle_tarot_parse_command
 from core.middleware.anti_fake_channel import AntiFakeChannelUsersMiddleware
 from core.middleware.mars import MARSMiddleware
@@ -36,7 +36,7 @@ from core.bitflip import handle_bitflip_command
 from core.link import handle_tg_links
 from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command, handle_demote_command
-from core.repeater import MessageRepeater
+from core.middleware.repeater import MessageRepeaterMiddleware
 from core.report_links import report_broken_links
 from core.simple import (
     handle_start_command,
@@ -46,7 +46,7 @@ from core.simple import (
     handle_ping_command,
     handle_tips_command,
     handle_about_command,
-    handle_nexusmods_id,
+    handle_nexusmods_id
 )
 from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
@@ -64,6 +64,7 @@ class TelegramAdapter:
         self.dp = Dispatcher()
         self.stats_middleware = MessageStatsMiddleware()
         self.channel_unpin_middleware = UnpinChannelMsgMiddleware()
+        self.repeat_middleware = MessageRepeaterMiddleware()
         self.anti_fake_channel_middleware = AntiFakeChannelUsersMiddleware()
         self.mars_middleware = MARSMiddleware()
         self.meme_middleware = ThreeKingdomsMiddleWare()
@@ -125,6 +126,7 @@ class TelegramAdapter:
         )(handle_tg_links)
         # mc 模块
         router.message(Command("mc"))(handle_mc_status_command)
+        router.guest_message(Command("mc",ignore_mention=True))(handle_guest_mc_status_command)
         # 抽奖模块
         router.message(Command("lottery"))(handle_lottery_command)
         # 塔罗牌解牌模块
@@ -143,9 +145,6 @@ class TelegramAdapter:
             & ~F.is_automatic_forward
         )(handle_anonymous_channel_msgs)
 
-        repeater_router.message(F.chat.type.in_({"group", "supergroup"}))(
-            MessageRepeater().handle_message
-        )
         router.message(F.text.regexp(r"(n|N) ?网尾号 ?[0-9]*"))(handle_nexusmods_id)
         # welcome 模块
         router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))(
@@ -186,6 +185,7 @@ class TelegramAdapter:
         self.dp.message.middleware(self.stats_middleware)
         self.dp.message.middleware(self.channel_unpin_middleware)
         self.dp.message.middleware(self.anti_fake_channel_middleware)
+        self.dp.message.middleware(self.repeat_middleware)
 
     async def start(self):
         """Start the Telegram bot"""

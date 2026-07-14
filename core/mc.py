@@ -1,7 +1,8 @@
 import logging
 
 from aiogram.enums import ParseMode
-from aiogram.types import Message
+from aiogram.types import Message, InlineQueryResultArticle, InputTextMessageContent
+
 
 async def lookup_java_server(query_enabled,server_address):
         try:
@@ -151,3 +152,35 @@ async def handle_mc_status_command(message: Message):
         else:
             await status_message.edit_text("未知的服务器类型，请使用 'java' 或 'bedrock'")
 
+async def handle_guest_mc_status_command(message: Message) -> None:
+    if not message.guest_query_id:
+        return
+    bot_username = f'@{(await message.bot.get_me()).username}' or '@'
+    args = message.text.replace('/mc', '').replace(bot_username, '').strip().split(' ')
+    server_type = args[0] if args else None
+    server_address = args[1] if args else None
+    def g_text(st,format=ParseMode.MARKDOWN):
+        import uuid
+        sid = str(uuid.uuid4()).split("-")[0]
+        return InlineQueryResultArticle(
+            id=sid,
+            input_message_content=InputTextMessageContent(message_text=st,parse_mode=format),
+            title=st
+        )
+    if server_type not in ['java', 'bedrock']:
+        await message.answer_guest_query(g_text("未知的服务器类型，请使用 'java' 或 'bedrock'"))
+        return
+    if server_address:
+        import re
+        local_ip_regex = r'^(?:(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:(?:1[6-9])|(?:2[0-9])|(?:3[0-1]))\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d{1,5})?)$'
+        if re.match(local_ip_regex, server_address) or server_address == 'localhost' or any(server_address == address for address in ['::1', 'fe80::', '.lan']):
+            await message.reply("正在与本地服务器断开连接")
+            return
+    if server_type.lower() == "java":
+        s_message = await lookup_java_server(server_address=server_address,query_enabled=False)
+        await message.answer_guest_query(g_text(s_message))
+        return
+    if server_type.lower() == "bedrock":
+        s_message = await lookup_bedrock_server(server_address)
+        await message.answer_guest_query(g_text(s_message))
+        return

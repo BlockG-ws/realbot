@@ -15,6 +15,8 @@ async def handle_baka(message: Message) -> None:
 
 async def handle_info_command(message: Message) -> None:
     """Handle /info command"""
+    verbose = "verbose" in (message.text or "")
+    # TODO: verbose mode
     user = message.from_user
     chat = message.chat
     response = (

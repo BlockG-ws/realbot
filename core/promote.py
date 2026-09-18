@@ -6,7 +6,7 @@ from config import config
 
 
 async def handle_promote_command(message: Message) -> None:
-    title = message.text.replace('/t', '').strip()
+    title = " ".join(message.text.split(" ")[1:])
     if not await config.is_feature_enabled('promote', message.chat.id):
         return
     if message.chat.type not in ['group', 'supergroup']:

@@ -76,7 +76,7 @@ async def handle_actions(message: Message) -> None:
         parts = rawtext.split(" ")
         if parts[0].replace('/','',1).isascii():
             return
-        verb = parts[0].replace('/', '')
+        verb = parts[0].replace('/', '').replace('$','',1)
         ending = "" if verb in special_verbs or verb.endswith("了") else "了"
         args = parts[1:]
         to_remove, replace_with, punctuation, content = _parse_action(args, default_ending=ending)
@@ -87,7 +87,7 @@ async def handle_actions(message: Message) -> None:
         else:
             await message.reply(f"{from_user} {verb} {replied_user if message.reply_to_message and replied_user != from_user else '自己'}{punc}", disable_web_page_preview=True)
     else:
-        await message.reply(f"{from_user} {message.text.replace('/','')}了 {replied_user if message.reply_to_message and replied_user != from_user else '自己'}！",disable_web_page_preview=True)
+        await message.reply(f"{from_user} {message.text.replace('/','').replace('$','',1)}了 {replied_user if message.reply_to_message and replied_user != from_user else '自己'}！",disable_web_page_preview=True)
 
 async def handle_reverse_actions(message: Message) -> None:
     from_user = message.from_user.mention_html(message.sender_chat.title) if message.sender_chat else message.from_user.mention_html()

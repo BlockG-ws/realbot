@@ -184,22 +184,23 @@ async def handle_inline_query(query: InlineQuery):
                     author = video.get('author', '')
                     play = video.get('play', 0)
                     thumbnail = f"https:{video.get('pic')}"
-                    description = video.get('description', '')
+                    description = video.get('description', '') + '...'
 
-                    async with aiohttp.ClientSession(cookie_jar=b23_cookie) as session:
+                    #async with aiohttp.ClientSession(cookie_jar=b23_cookie) as session:
                         # 因为b站搜索API会把简介截断，所以再使用获取视频信息的API获取一次简介
-                        async with session.get(
-                                'https://api.bilibili.com/x/web-interface/view',
-                                params={'bvid': bvid},
-                                headers={ "user-agent": fake_edge_ua }) as vid_info_resp:
-                            vid_info_data = (await vid_info_resp.json()).get('data', {})
-                            if vid_info_data:
-                                desc_v2 = vid_info_data.get('desc_v2', {})
-                                if desc_v2 and desc_v2[0].get('type') == 2:  # type 2 是有 @ 他人的简介
-                                    new_desc = desc_v2.get('raw_text','')
-                                else:
-                                    new_desc = vid_info_data.get('desc','')
-                                description = new_desc or description
+                        # 20260918: b 站收紧了视频信息 API 的限制，不再使用此方式
+                        #async with session.get(
+                                #'https://api.bilibili.com/x/web-interface/view',
+                                #params={'bvid': bvid},
+                                #headers={ "user-agent": fake_edge_ua }) as vid_info_resp:
+                            #vid_info_data = (await vid_info_resp.json()).get('data', {})
+                            #if vid_info_data:
+                                #desc_v2 = vid_info_data.get('desc_v2', {})
+                                #if desc_v2 and desc_v2[0].get('type') == 2:  # type 2 是有 @ 他人的简介
+                                    #new_desc = desc_v2.get('raw_text','')
+                                #else:
+                                    #new_desc = vid_info_data.get('desc','')
+                                #description = new_desc or description
 
                     search_results.append(InlineQueryResultArticle(
                         id=str(i + 1),

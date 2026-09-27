@@ -7,6 +7,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
 from aiogram.utils.formatting import Text, ExpandableBlockQuote, TextLink
 
+from core import guest
 from core.link import clean_link_in_text
 
 fake_edge_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"
@@ -582,6 +583,40 @@ async def handle_inline_query(query: InlineQuery):
                 )
             ], cache_time=0)
         return
+    if query_text.startswith("hhsh"):
+        abbr = query_text.replace("hhsh", "",1).strip()
+        if not abbr:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title=f"请输入你看不懂的缩写",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"我这个词不太明白...",
+                        parse_mode=ParseMode.MARKDOWN
+                    ),
+                    description="或者点击询问朋友"
+                )
+            ], cache_time=3600)
+            return
+        async with aiohttp.ClientSession() as session:
+            async with session.post("https://lab.magiconch.com/api/nbnhhsh/guess", data={ "text": abbr}) as resp:
+                guess = await resp.json()
+                meanings = guess[0].get("trans",[])
+        results = ", ".join(meanings)
+        if abbr and results:
+            await query.answer(results=[
+                InlineQueryResultArticle(
+                    id="1",
+                    title=f"{abbr} 的意思可能是：",
+                    input_message_content=InputTextMessageContent(
+                        message_text=f"{abbr} 的意思可能是：\n{results}\n[数据由”能不能好好说话”提供](https://lab.magiconch.com/nbnhhsh/)",
+                        parse_mode=ParseMode.MARKDOWN,
+                        disable_web_page_preview=True
+                    ),
+                    description=results
+                )
+            ], cache_time=3600)
+            return
     if query_text.startswith("将军"):
         # fallback support for users who forget the colon
         if not query_text.startswith('将军：'):

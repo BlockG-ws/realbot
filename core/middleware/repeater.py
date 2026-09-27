@@ -37,7 +37,7 @@ class MessageRepeaterMiddleware(BaseMiddleware):
         elif message.sticker:
             content = message.sticker.file_id
         elif message.photo:
-            content = message.photo[0].file_id + message.caption
+            content = message.photo[0].file_id + (message.caption or "")
         else:
             return
 

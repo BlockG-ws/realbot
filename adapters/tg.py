@@ -37,6 +37,7 @@ from core.link import handle_tg_links
 from core.post_to_fedi import handle_auth, handle_post_to_fedi
 from core.promote import handle_promote_command, handle_demote_command
 from core.middleware.repeater import MessageRepeaterMiddleware
+from core.qr import parse_qrcode
 from core.report_links import report_broken_links
 from core.simple import (
     handle_start_command,
@@ -124,6 +125,8 @@ class TelegramAdapter:
         router.message(
             F.text.contains("http") & ~F.text.contains("/report_broken_links")
         )(handle_tg_links)
+        # qr 模块
+        router.message(F.photo | (F.document & F.document.mime_type.startswith("image/")))(parse_qrcode)
         # mc 模块
         router.message(Command("mc"))(handle_mc_status_command)
         router.guest_message(Command("mc",ignore_mention=True))(handle_guest_mc_status_command)

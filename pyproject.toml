@@ -19,4 +19,7 @@ dependencies = [
     "requests~=2.34.2",
     "tortoise-orm~=1.1.7",
     "unidecode~=1.4.0",
+    "opencv-python>=5.0.0.93",
+    "numpy>=2.5.3",
+    "zxing-cpp>=3.1.1",
 ]

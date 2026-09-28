@@ -27,7 +27,7 @@ async def handle_inline_query(query: InlineQuery):
                 title="你还没什么都没输入呢",
                 input_message_content=InputTextMessageContent(
                     message_text=f"难说！",
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description=f"或许你可以试试 'search' 什么的"
             ),
@@ -68,7 +68,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="输入搜索内容",
                     input_message_content=InputTextMessageContent(
                         message_text="ta 好像想让你用搜索引擎搜索这个问题，但 ta 没有输入任何内容。",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description="请在 'search' 后输入你想要搜索的内容。"
                 )
@@ -85,7 +85,7 @@ async def handle_inline_query(query: InlineQuery):
                 title="发送 Pangu 格式化之后的结果",
                 input_message_content=InputTextMessageContent(
                     message_text=text,
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description=f"格式化后的文本：{text}"
             )
@@ -98,7 +98,7 @@ async def handle_inline_query(query: InlineQuery):
                 title="阿诺模式",
                 input_message_content=InputTextMessageContent(
                     message_text="你的头怎么尖尖的，那我问你",
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description="我可能是阿诺，但我是阿诺不太可能"
             )
@@ -129,7 +129,7 @@ async def handle_inline_query(query: InlineQuery):
                 title="头上总得有点绿",
                 input_message_content=InputTextMessageContent(
                     message_text="你说的对，我的头是绿的",
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description="说实话，你一般问出来这个问题的时候，我一般不建议你再继续下去了"
             )
@@ -144,7 +144,7 @@ async def handle_inline_query(query: InlineQuery):
                 title="阿诺的公式",
                 input_message_content=InputTextMessageContent(
                     message_text=f"{"我可能是阿诺，但我是阿诺不太可能" if not main else f"{main}有可能，但{main}不太可能"}",
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description=f"{"我可能是阿诺，但我是阿诺不太可能" if not main else f"{main}有可能，但{main}不太可能"}"
             )
@@ -225,7 +225,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="输入搜索内容",
                     input_message_content=InputTextMessageContent(
                         message_text="ta 好像想在 b 站搜索视频，但 ta 没有输入任何内容。",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description="请在 'b23' 后输入你想要搜索的内容。"
                 )
@@ -390,7 +390,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="高血压",
                     input_message_content=InputTextMessageContent(
                         message_text=split_text,
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"有一种说半天话也没说明白的感觉"
                 ),
@@ -403,7 +403,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="高血压",
                     input_message_content=InputTextMessageContent(
                         message_text="这个 那个",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"你到底要说啥啊"
                 ),
@@ -420,7 +420,7 @@ async def handle_inline_query(query: InlineQuery):
                         title="在 ArchWiki 上搜索",
                         input_message_content=InputTextMessageContent(
                             message_text=f"我建议你去 ArchWiki 搜一下 {arg_value}：\nhttps://wiki.archlinux.org/title/Special:Search?search={arch_query}&go=Go",
-                            parse_mode=ParseMode.MARKDOWN
+                            parse_mode=ParseMode.MARKDOWN_V2
                         ),
                         description=f"发送 {arg_value} 的搜索结果页面链接"
                     )]
@@ -450,7 +450,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="在 Arch Linux 软件包仓库上搜索",
                     input_message_content=InputTextMessageContent(
                         message_text=f"可以搜一下 {arg_value}：\nhttps://archlinux.org/packages/?q={arg_value}",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"发送 {arg_value} 的搜索结果页面链接"
                 )]
@@ -523,7 +523,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="在 Arch User Repository (AUR) 上搜索",
                     input_message_content=InputTextMessageContent(
                         message_text=f"可以搜一下 {arg_value}：\nhttps://aur.archlinux.org/packages/?O=0&K={arg_value}",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"发送 {arg_value} 的搜索结果页面链接"
                 )]
@@ -565,7 +565,7 @@ async def handle_inline_query(query: InlineQuery):
                         title="未知的的查询类型",
                         input_message_content=InputTextMessageContent(
                             message_text="支持的查询： 'wiki', 'packages/pkg/package', 'aur'",
-                            parse_mode=ParseMode.MARKDOWN
+                            parse_mode=ParseMode.MARKDOWN_V2
                         ),
                         description="请使用有效的搜索类型。"
                     )
@@ -577,7 +577,7 @@ async def handle_inline_query(query: InlineQuery):
                     title="输入搜索内容",
                     input_message_content=InputTextMessageContent(
                         message_text="ta 好像想让你搜索这个问题，但 ta 没有输入任何内容。",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description="请在 'arch' 后输入你想要搜索的类型以及内容。"
                 )
@@ -591,8 +591,8 @@ async def handle_inline_query(query: InlineQuery):
                     id="1",
                     title=f"请输入你看不懂的缩写",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"我这个词不太明白...",
-                        parse_mode=ParseMode.MARKDOWN
+                        message_text=f"{markdown_decoration.quote("我这个词不太明白...")}",
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description="或者点击询问朋友"
                 )
@@ -610,7 +610,7 @@ async def handle_inline_query(query: InlineQuery):
                     title=f"{abbr} 的意思可能是：",
                     input_message_content=InputTextMessageContent(
                         message_text=f"{abbr} 的意思可能是：\n{markdown_decoration.quote(results)}\n[数据由”能不能好好说话”提供](https://lab.magiconch.com/nbnhhsh/)",
-                        parse_mode=ParseMode.MARKDOWN,
+                        parse_mode=ParseMode.MARKDOWN_V2,
                         disable_web_page_preview=True
                     ),
                     description=results
@@ -628,7 +628,7 @@ async def handle_inline_query(query: InlineQuery):
                 input_message_content=InputTextMessageContent(
                     message_text=f"{query_text}\n\n旁边的手下：✍✍✍✍✍✍✍✍✍✍✍\n️围观的群众：\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o"
                                  f"/\\o/\\o/\\o/",
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN_V2
                 ),
                 description=f"\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/"
             ),
@@ -648,7 +648,7 @@ async def handle_inline_query(query: InlineQuery):
                     title=f"我感觉你应该在找 {song_name}",
                     input_message_content=InputTextMessageContent(
                         message_text=f"你是不是在找：{song_name}\n{song_link}\n如果不是，可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
-                        parse_mode=ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN_V2
                     ),
                     description=f"根据关键词 '{keywords}' 找到的歌曲"
                 )
@@ -668,7 +668,7 @@ async def handle_inline_query(query: InlineQuery):
                         title=f"我感觉你应该在找 {song_name}",
                         input_message_content=InputTextMessageContent(
                             message_text=f"你是不是在找：{song_name}\n{song_link}\n如果不是，可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
-                            parse_mode=ParseMode.MARKDOWN
+                            parse_mode=ParseMode.MARKDOWN_V2
                         ),
                         description=f"根据关键词 '{keywords}' 找到的歌曲"
                     )
@@ -682,7 +682,7 @@ async def handle_inline_query(query: InlineQuery):
                         title=f"抱歉，数据库中没有搜索到 '{keywords}' 的歌曲",
                         input_message_content=InputTextMessageContent(
                             message_text=f"可能你需要[在网络上搜索](https://search.bilibili.com/all?keyword={keywords})",
-                            parse_mode=ParseMode.MARKDOWN
+                            parse_mode=ParseMode.MARKDOWN_V2
                         ),
                         description=f"或许你应该尝试在网上搜索"
                     )
@@ -695,7 +695,7 @@ async def handle_inline_query(query: InlineQuery):
             title=f"嘿，你好啊 {query.from_user.full_name if query.from_user else '宋冬'}！",
             input_message_content=InputTextMessageContent(
                 message_text="小娜😭",
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN_V2
             ),
             description="很抱歉，我还不能理解你说的内容，但你可以试试："
         ),
@@ -704,7 +704,7 @@ async def handle_inline_query(query: InlineQuery):
             title=f"全 部 加 上 空 格",
             input_message_content=InputTextMessageContent(
                 message_text=" ".join(query_text),
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN_V2
             ),
             description="很臭的功能"
         ),
@@ -713,7 +713,7 @@ async def handle_inline_query(query: InlineQuery):
             title=f"命令列表",
             input_message_content=InputTextMessageContent(
                 message_text=query_text,
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN_V2
             ),
             description="search, pg, anuo, bp, arch, 将军"
         ),

@@ -7,7 +7,6 @@ from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
 from aiogram.utils.formatting import Text, ExpandableBlockQuote, TextLink
 
-from core import guest
 from core.link import clean_link_in_text
 
 fake_edge_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/138.0.0.0"

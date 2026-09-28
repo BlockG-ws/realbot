@@ -6,6 +6,7 @@ import aiohttp
 from aiogram.enums import ParseMode
 from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
 from aiogram.utils.formatting import Text, ExpandableBlockQuote, TextLink
+from aiogram.utils.text_decorations import markdown_decoration
 
 from core.link import clean_link_in_text
 
@@ -608,7 +609,7 @@ async def handle_inline_query(query: InlineQuery):
                     id="1",
                     title=f"{abbr} 的意思可能是：",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"{abbr} 的意思可能是：\n{results}\n[数据由”能不能好好说话”提供](https://lab.magiconch.com/nbnhhsh/)",
+                        message_text=f"{abbr} 的意思可能是：\n{markdown_decoration.quote(results)}\n[数据由”能不能好好说话”提供](https://lab.magiconch.com/nbnhhsh/)",
                         parse_mode=ParseMode.MARKDOWN,
                         disable_web_page_preview=True
                     ),

@@ -6,7 +6,7 @@ import sys
 from asyncio import TaskGroup
 
 import adapters.db.core
-import config
+from config import config
 from adapters.tg import TelegramAdapter
 
 
@@ -18,7 +18,7 @@ async def main():
         logging.basicConfig(level=logging.INFO,stream=sys.stdout)
 
     tasks = []
-    cfg = config.Config()
+    cfg = config
     # Initialize database
     await adapters.db.core.init_db()
     # Initialize and start Telegram adapter

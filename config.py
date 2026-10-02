@@ -1,217 +1,305 @@
 import logging
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 import yaml
-from typing import Dict, Any, Optional, Union
-from pathlib import Path
 
-from adapters.db.config import get_config_value, get_config
+
+def _to_int_chat_id(chat_id: Any) -> Optional[int]:
+    """Safely convert chat_id to an integer if applicable, else return None."""
+    if isinstance(chat_id, int):
+        return chat_id
+    if isinstance(chat_id, str):
+        s = chat_id.strip()
+        if s and (s.isdigit() or (s.startswith("-") and s[1:].isdigit())):
+            try:
+                return int(s)
+            except ValueError:
+                return None
+    return None
+
+
+def _extract_enable(val: Any) -> Optional[bool]:
+    """Extract boolean enable flag from bool or dict."""
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, dict):
+        enable_val = val.get("enable")
+        if isinstance(enable_val, bool):
+            return enable_val
+    return None
+
+
+def _deep_merge(base: Any, override: Any) -> Any:
+    """Recursively merge override into base, ignoring None in override."""
+    if override is None:
+        return base
+    if not isinstance(base, dict) or not isinstance(override, dict):
+        return override
+    merged = dict(base)
+    for k, v in override.items():
+        if v is None:
+            continue
+        if k in merged and isinstance(merged[k], dict) and isinstance(v, dict):
+            merged[k] = _deep_merge(merged[k], v)
+        else:
+            merged[k] = v
+    return merged
+
+
+async def _get_db_feature_config(chat_id: Any, feature_name: str) -> Any:
+    """Retrieve a feature config from DB if chat_id is numeric."""
+    int_id = _to_int_chat_id(chat_id)
+    if int_id is None:
+        return None
+    try:
+        from adapters.db.config import get_config_value
+
+        return await get_config_value(int_id, feature_name)
+    except Exception as e:
+        logging.warning(
+            f"Error reading feature {feature_name} from DB for chat {int_id}: {e}"
+        )
+        return None
+
+
+async def _get_db_chat_config(chat_id: Any) -> Dict[str, Any]:
+    """Retrieve all feature overrides from DB, excluding model metadata columns."""
+    int_id = _to_int_chat_id(chat_id)
+    if int_id is None:
+        return {}
+    try:
+        from adapters.db.config import get_config
+
+        raw = await get_config(int_id)
+        if not isinstance(raw, dict):
+            return {}
+        return {
+            k: v
+            for k, v in raw.items()
+            if k not in ("id", "chat_id") and v is not None
+        }
+    except Exception as e:
+        logging.warning(f"Error reading DB config for chat {int_id}: {e}")
+        return {}
 
 
 class Config:
     def __init__(self, config_path: str = "config.yaml"):
         self.config_path = Path(config_path)
-        self.config_data = self._load_config()
+        self.config_data: Dict[Union[str, int], Any] = self._load_config()
 
     def _load_config(self) -> Dict[Union[str, int], Any]:
-        """Load configuration from YAML file"""
+        """Load configuration from YAML file."""
         try:
             with open(self.config_path, "r", encoding="utf-8") as file:
                 return yaml.safe_load(file) or {}
         except FileNotFoundError:
             return {}
         except yaml.YAMLError as e:
-            print(f"Error loading config: {e}")
+            logging.error(f"Error loading config file {self.config_path}: {e}")
             return {}
 
-    def get_admin_id(self) -> Optional[int]:
-        """Get admin user ID"""
-        return self.config_data.get("admin")
-
-    def get_developer_id(self) -> Optional[int]:
-        """Get developer user ID"""
-        return self.config_data.get("dev")
-
     def get_config_value(self, key: str, default: Any = None) -> Any:
-        """
-        Get a configuration value by key
-
-        Args:
-            key: Configuration key to retrieve
-            default: Default value if key is not found
-
-        Returns:
-            The configuration value or default if not found
-        """
+        """Get a configuration value using dot notation (e.g. 'matrix.homeserver')."""
         keys = key.split(".")
         value = self.config_data
-
         for k in keys:
             if isinstance(value, dict) and k in value:
                 value = value[k]
             else:
                 return default
-
         return value
 
+    def get(self, key: str, default: Any = None) -> Any:
+        """Alias for get_config_value."""
+        return self.get_config_value(key, default)
+
+    def get_admin_id(self) -> Optional[int]:
+        """Get admin user ID."""
+        return self.get_config_value("admin")
+
+    def get_developer_id(self) -> Optional[int]:
+        """Get developer user ID."""
+        return self.get_config_value("dev")
+
+    def _get_yaml_chat_config(self, chat_id: Any) -> Dict[str, Any]:
+        """Get chat-specific configuration dictionary from YAML data."""
+        if chat_id is None:
+            return {}
+        if chat_id in self.config_data and isinstance(self.config_data[chat_id], dict):
+            return self.config_data[chat_id]
+        str_id = str(chat_id)
+        if str_id in self.config_data and isinstance(self.config_data[str_id], dict):
+            return self.config_data[str_id]
+        int_id = _to_int_chat_id(chat_id)
+        if (
+            int_id is not None
+            and int_id in self.config_data
+            and isinstance(self.config_data[int_id], dict)
+        ):
+            return self.config_data[int_id]
+        return {}
+
     def is_global_feature_enabled(self, feature_name: str) -> bool:
-        """
-        Check if a feature is globally enabled
-
-        Args:
-            feature_name: Name of the feature (e.g., 'actions', 'bitflip', 'link')
-        Returns:
-            bool: True if feature is enabled, False otherwise
-        """
+        """Check if a feature is enabled globally in YAML."""
         global_features = self.config_data.get("features", {})
-        feature_config = global_features.get(feature_name, {})
-        return feature_config.get("enable", False)
-
-    async def get_group_config(
-        self, chat_id: int
-    ) -> None | dict[str, Any] | dict[Any, Any] | dict:
-        """
-        Get configuration for a specific group chat
-
-        Args:
-            chat_id: Telegram Chat ID of the group
-        Returns:
-            dict: Group configuration
-        """
-
-        def _fill_none(
-            primary: Dict[str, Any], fallback: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            if not isinstance(primary, dict):
-                return primary if primary is not None else fallback
-            result: Dict[str, Any] = {}
-            for k, v in primary.items():
-                fb = fallback.get(k) if isinstance(fallback, dict) else None
-                if isinstance(v, dict) and isinstance(fb, dict):
-                    result[k] = _fill_none(v, fb)
-                else:
-                    result[k] = v if v is not None else fb
-            # include keys only present in fallback
-            if isinstance(fallback, dict):
-                for k, v in fallback.items():
-                    if k not in result:
-                        result[k] = v
-            return result
-
-        def _normalize_enabled_dicts(cfg: Any) -> Any:
-            """
-            Convert dicts of the form {'enable': bool} into the bool value,
-            and recurse into nested dicts to normalize values.
-            """
-            if not isinstance(cfg, dict):
-                return cfg
-            normalized: Dict[Any, Any] = {}
-            for k, v in cfg.items():
-                if isinstance(v, dict) and set(v.keys()) == {"enable"}:
-                    normalized[k] = v.get("enable")
-                else:
-                    normalized[k] = v
-            return normalized
-
-        try:
-            db_config = await get_config(chat_id)
-            file_cfg = self.config_data.get(chat_id, {}) or self.config_data.get(
-                str(chat_id), {}
-            )
-            file_cfg = _normalize_enabled_dicts(file_cfg)
-            if not db_config:
-                if file_cfg:
-                    global_features = self.config_data.get("features", {})
-                    global_features = _normalize_enabled_dicts(global_features)
-                    return _fill_none(file_cfg, global_features)
-                # Fallback to global features if neither DB nor file has group config
-                return self.config_data.get("features", {})
-            else:
-                global_features = self.config_data.get("features", {})
-                global_features = _normalize_enabled_dicts(global_features)
-                if file_cfg:
-                    db_config = _fill_none(db_config, file_cfg)
-                    db_config = _fill_none(db_config, global_features)
-                    return db_config
-                else:
-                    db_config = _fill_none(db_config, global_features)
-            return db_config
-        except Exception as e:
-            logging.warning(f"获取群组 {chat_id} 配置时出错", e)
+        if not isinstance(global_features, dict):
+            return False
+        val = global_features.get(feature_name)
+        en = _extract_enable(val)
+        return en if en is not None else False
 
     async def is_feature_enabled(
-        self, feature_name: str, chat_id: Optional[int | str] = None
+        self, feature_name: str, chat_id: Optional[Union[int, str]] = None
     ) -> bool:
         """
-        Check if a feature is enabled for a specific chat or globally
-
-        Args:
-            feature_name: Name of the feature (e.g., 'actions', 'bitflip', 'link')
-            chat_id: Chat ID to check group-specific settings (optional)
-        Returns:
-            bool: True if feature is enabled, False otherwise
+        Check if a feature is enabled for a specific chat or globally.
+        Precedence:
+          1. Global Kill Switch: If the feature exists in global 'features' and is disabled, return False.
+          2. DB override (for numeric chat_id)
+          3. YAML group override
+          4. Global YAML default
         """
-        if feature_name == "copy_notice_event" and type(chat_id) is str:
-            group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config:
-                feature_value = group_config[feature_name]
-                # Handle both bool and dict formats
-                if isinstance(feature_value, bool):
-                    return feature_value
-                elif isinstance(feature_value, dict) and "enable" in feature_value:
-                    return feature_value.get("enable", False)
-            return False
-        if not self.is_global_feature_enabled(feature_name):
-            return False
-        # Check group-specific settings
-        if chat_id:
-            try:
-                is_enabled = await get_config_value(chat_id, feature_name)
-                if isinstance(is_enabled, bool):
-                    return is_enabled
-                elif isinstance(is_enabled, dict) and "enable" in is_enabled:
-                    return is_enabled.get("enable")
-            except Exception:
-                logging.warning(
-                    f"从数据库获取 {feature_name} 配置时出错，使用文件配置作为后备"
-                )
-            group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config:
-                feature_value = group_config[feature_name]
-                # Handle both bool and dict formats
-                if isinstance(feature_value, bool):
-                    return feature_value
-                elif isinstance(feature_value, dict) and "enable" in feature_value:
-                    enable_value = feature_value.get("enable")
-                    if enable_value is not None:
-                        return enable_value
+        global_features = self.config_data.get("features", {})
+        if isinstance(global_features, dict) and feature_name in global_features:
+            if not self.is_global_feature_enabled(feature_name):
+                return False
+
+        if not chat_id:
             return self.is_global_feature_enabled(feature_name)
-        return False
+
+        # 1. DB Override
+        db_val = await _get_db_feature_config(chat_id, feature_name)
+        en = _extract_enable(db_val)
+        if en is not None:
+            return en
+
+        # 2. YAML Group Override
+        yaml_chat = self._get_yaml_chat_config(chat_id)
+        if feature_name in yaml_chat:
+            en = _extract_enable(yaml_chat[feature_name])
+            if en is not None:
+                return en
+
+        # 3. Global Fallback
+        return self.is_global_feature_enabled(feature_name)
 
     async def get_feature_config(
-        self, feature_name: str, chat_id: Optional[int] = None
+        self, feature_name: str, chat_id: Optional[Union[int, str]] = None
     ) -> Dict[str, Any]:
         """
-        Get complete configuration for a feature
-
-        Args:
-            feature_name: Name of the feature
-            chat_id: Chat ID to check group-specific settings (optional)
-
-        Returns:
-            dict: Feature configuration
+        Get complete configuration for a feature, merged with global defaults.
+        Precedence: Global Default <- YAML Group Override <- DB Override.
         """
-        # Check group-specific settings first
-        if chat_id:
-            db_config = await get_config_value(chat_id, feature_name)
-            if isinstance(db_config, dict):
-                return db_config
-            group_config = self.config_data.get(chat_id, {})
-            if feature_name in group_config:
-                return group_config[feature_name]
-
-        # Fall back to global settings
         global_features = self.config_data.get("features", {})
-        return global_features.get(feature_name, {})
+        base_raw = (
+            global_features.get(feature_name, {})
+            if isinstance(global_features, dict)
+            else {}
+        )
+        if isinstance(base_raw, bool):
+            base_cfg: Dict[str, Any] = {"enable": base_raw}
+        elif isinstance(base_raw, dict):
+            base_cfg = dict(base_raw)
+        else:
+            base_cfg = {}
+
+        if not chat_id:
+            return base_cfg
+
+        # YAML Group Override
+        yaml_chat = self._get_yaml_chat_config(chat_id)
+        yaml_feat = yaml_chat.get(feature_name)
+        if isinstance(yaml_feat, bool):
+            base_cfg["enable"] = yaml_feat
+        elif isinstance(yaml_feat, dict):
+            base_cfg = _deep_merge(base_cfg, yaml_feat)
+
+        # DB Override
+        db_val = await _get_db_feature_config(chat_id, feature_name)
+        if isinstance(db_val, bool):
+            base_cfg["enable"] = db_val
+        elif isinstance(db_val, dict):
+            base_cfg = _deep_merge(base_cfg, db_val)
+
+        return base_cfg
+
+    async def get_group_config(self, chat_id: Union[int, str]) -> Dict[str, Any]:
+        """
+        Get full effective configuration for a group chat.
+        Returns a dictionary mapping feature names to their effective config (bool or dict).
+        """
+        result: Dict[str, Any] = {}
+
+        # 1. Base from global features
+        global_features = self.config_data.get("features", {})
+        if isinstance(global_features, dict):
+            for feat, val in global_features.items():
+                if isinstance(val, dict):
+                    if set(val.keys()) == {"enable"}:
+                        result[feat] = val.get("enable")
+                    else:
+                        result[feat] = dict(val)
+                else:
+                    result[feat] = val
+
+        # 2. Merge YAML group config
+        yaml_chat = self._get_yaml_chat_config(chat_id)
+        for feat, val in yaml_chat.items():
+            norm = (
+                val.get("enable")
+                if isinstance(val, dict) and set(val.keys()) == {"enable"}
+                else val
+            )
+            if feat in result and isinstance(result[feat], dict) and isinstance(norm, dict):
+                result[feat] = _deep_merge(result[feat], norm)
+            else:
+                result[feat] = norm
+
+        # 3. Merge DB config (metadata excluded)
+        db_chat = await _get_db_chat_config(chat_id)
+        for feat, val in db_chat.items():
+            if feat in result and isinstance(result[feat], dict) and isinstance(val, dict):
+                result[feat] = _deep_merge(result[feat], val)
+            else:
+                result[feat] = val
+
+        return result
+
+    async def update_group_feature(
+        self,
+        chat_id: Union[int, str],
+        feature: str,
+        value: Union[bool, str, int, dict],
+        sub_key: Optional[str] = None,
+    ) -> bool:
+        """
+        Update a group feature's configuration in the database.
+        Returns True on success, False otherwise.
+        """
+        int_id = _to_int_chat_id(chat_id)
+        if int_id is None:
+            logging.warning(f"Cannot update config for non-numeric chat_id: {chat_id}")
+            return False
+
+        # Guard against updating globally disabled features
+        global_features = self.config_data.get("features", {})
+        if isinstance(global_features, dict) and feature in global_features:
+            if not self.is_global_feature_enabled(feature):
+                logging.warning(f"Feature {feature} is globally disabled; update denied.")
+                return False
+
+        try:
+            from adapters.db.config import update_config_value
+
+            await update_config_value(
+                chat_id=int_id, feature=feature, key=sub_key, value=value
+            )
+            return True
+        except Exception as e:
+            logging.error(f"Failed to update config for chat {int_id}, feature {feature}: {e}")
+            return False
 
 
 # Global config instance

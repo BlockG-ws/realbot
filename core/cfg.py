@@ -1,7 +1,6 @@
 from aiogram.types import Message
 
 from config import config
-from adapters.db.config import update_config_value
 
 enable_keywords = ['true', '1', 'yes', 'on', 'enable']
 disable_keywords = ['false', '0', 'no', 'off', 'disable']
@@ -42,21 +41,22 @@ async def handle_config_command(message: Message):
         return
     if key in group_config and isinstance(group_config[key], bool):
         if args[1].lower() in enable_keywords:
-            await update_config_value(chat_id=chat_id, feature=key, key=None,value=True)
+            await config.update_group_feature(chat_id=chat_id, feature=key, value=True)
             await message.reply(f"功能 {key} 已开启")
         elif args[1].lower() in disable_keywords:
-            await update_config_value(chat_id=chat_id, feature=key, key=None,value=False)
+            await config.update_group_feature(chat_id=chat_id, feature=key, value=False)
             await message.reply(f"功能 {key} 已关闭")
     elif key in group_config and isinstance(group_config[key], dict):
         if args[1].lower() in enable_keywords:
-            await update_config_value(chat_id=chat_id, feature=key, key="enable", value=True)
+            await config.update_group_feature(chat_id=chat_id, feature=key, sub_key="enable", value=True)
             await message.reply(f"功能 {key} 已开启")
         elif args[1].lower() in disable_keywords:
-            await update_config_value(chat_id=chat_id, feature=key, key="enable", value=False)
+            await config.update_group_feature(chat_id=chat_id, feature=key, sub_key="enable", value=False)
             await message.reply(f"功能 {key} 已关闭")
         elif args[1] in group_config[key].keys():
-            await update_config_value(chat_id=chat_id, feature=key, key=args[1], value=" ".join(args[2:]))
-            await message.reply(f"配置项 {key}.{args[1]} 已更新为 {' '.join(args[2:])}")
+            val = " ".join(args[2:])
+            await config.update_group_feature(chat_id=chat_id, feature=key, sub_key=args[1], value=val)
+            await message.reply(f"配置项 {key}.{args[1]} 已更新为 {val}")
         elif args[1] not in group_config[key].keys():
             await message.reply(f"配置项 {key}.{args[1]} 不存在，请检查后重试")
     else:

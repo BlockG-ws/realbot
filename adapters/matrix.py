@@ -13,7 +13,7 @@ from nio import (
 from nio.events.room_events import RoomMessageText
 from typing import Dict, Callable, Union
 
-import config
+from config import config
 from adapters.db.sync_tokens import get_sync_token, update_sync_token
 from core.link import handle_matrix_links
 from core.matrix.copy_notice_event import copy_notice_as_text
@@ -203,7 +203,7 @@ Available commands:
 async def main():
     """Main function to run the bot."""
     # 从环境变量或配置文件中获取值
-    matrix_config = config.Config().get_config_value("matrix", {})
+    matrix_config = config.get_config_value("matrix", {})
     homeserver = matrix_config.get("homeserver", "https://matrix.org")
     user_id = matrix_config.get("user_id")
     token = os.getenv("MATRIX_BOT_TOKEN")

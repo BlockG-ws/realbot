@@ -47,7 +47,7 @@ from core.simple import (
     handle_ping_command,
     handle_tips_command,
     handle_about_command,
-    handle_nexusmods_id
+    handle_nexusmods_id, handle_ds_command
 )
 from core.actions import handle_actions, handle_reverse_actions
 from core.stats import handle_stats_command
@@ -132,6 +132,8 @@ class TelegramAdapter:
         router.guest_message(Command("mc",ignore_mention=True))(handle_guest_mc_status_command)
         # 抽奖模块
         router.message(Command("lottery"))(handle_lottery_command)
+        # 峰谷价
+        router.message(Command("ds"))(handle_ds_command)
         # 塔罗牌解牌模块
         #router.message(Command("tarot_parse"))(handle_tarot_parse_command)
         # unpin 模块

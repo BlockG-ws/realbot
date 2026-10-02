@@ -1,7 +1,9 @@
 import asyncio
 
 from aiogram import html
+from aiogram.enums import ParseMode
 from aiogram.types import Message
+from chinese_calendar import is_workday
 
 from config import config
 
@@ -95,6 +97,15 @@ async def handle_nexusmods_id(message: Message) -> None:
     nexusmods_id = message.text.replace(" ","").replace("N网尾号","").replace("n网尾号","")
     await message.reply(f"https://www.nexusmods.com/stardewvalley/mods/{nexusmods_id}")
 
+async def handle_ds_command(message: Message) -> None:
+    """判断当前是“梁文峰”还是梁文谷"""
+    from datetime import datetime,time
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Asia/Shanghai"))
+    if is_workday(now.date()) and (time(9,0) <= now.time() < time(12,0) or time(14,0) <= now.time() < time(18,0)):
+        await message.reply("现在是**梁文峰**",parse_mode=ParseMode.MARKDOWN_V2)
+    else:
+        await message.reply("现在是**梁文谷**",parse_mode=ParseMode.MARKDOWN_V2)
 async def dummy_handler(message: Message) -> None:
     """A handler to catch all other messages"""
     pass

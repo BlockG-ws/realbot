@@ -71,7 +71,7 @@ async def handle_about_command(message: Message) -> None:
         from dulwich.repo import Repo
         git_commit_hash = f"g{Repo('.').head().decode('utf-8')[:7]}"  # Get the first 7 characters of the commit hash
     except Exception:
-        git_commit_hash = 'v20250802'  # Fallback when git operations fail
+        git_commit_hash = 'v20261016'  # Fallback when git operations fail
     response = f"realbot@{git_commit_hash}\n\n"
     response += "孩子不懂随便写的 bot\n"
     if message.chat.id == config.get_admin_id():
@@ -79,18 +79,8 @@ async def handle_about_command(message: Message) -> None:
         import os
         response += 'Python Version: ' + str(os.sys.version) + '\n'
         response += 'System Info: ' + '\n' + ' '.join(str(x) for x in os.uname()) + '\n'
-    response += '\n这个命令比较慢，dulwich 负全责（小声），'
-    bot_time_end = time.time()
-    time_diff = bot_time_end - bot_time_start
-    if time_diff < 1:
-        response += f"也就大概花了 {round(time_diff * 1000, 2)} ms..."
-    elif time_diff < 60:
-        response += f"也就大概花了 {round(time_diff, 2)} 秒..."
-    else:
-        minutes = int(time_diff // 60)
-        seconds = round(time_diff % 60, 2)
-        response += f"也就大概花了 {minutes} 分 {seconds} 秒..."
-    await about_message.edit_text(response)
+    response += '\n此 bot 以 GNU General Public License 3.0 及以上版本<a href="https://github.com/BlockG-ws/realbot">开源</a>。'
+    await about_message.edit_text(response,disable_web_page_preview=True)
 
 async def handle_nexusmods_id(message: Message) -> None:
     """输入n网尾号xxxx之后主动返回星露谷物语的对应mod"""

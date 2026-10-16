@@ -6,6 +6,7 @@ from os import getenv
 from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import DetailedAiogramError
 from aiogram.filters import (
     CommandStart,
     Command,
@@ -17,11 +18,13 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 
 from adapters.scheduler.core import get_all_unended_jobs, Scheduler
+from config import config
 from core.anti_fake_users import (
     handle_anonymous_channel_msgs,
     handle_channel_manage_command,
 )
 from core.cfg import handle_config_command
+from core.error import handle_error
 from core.inline import handle_inline_query
 from core.ip import handle_ip_command
 from core.lottery import router as lottery_router, handle_lottery_command
@@ -182,6 +185,8 @@ class TelegramAdapter:
         #self.dp.include_router(tarot_parse_router)
         self.dp.include_router(repeater_router)
         self.dp.include_router(dummy_router)
+        if config.is_global_feature_enabled("error"):
+            self.dp.error()(handle_error)
 
     def _setup_middleware(self):
         """注册中间件"""

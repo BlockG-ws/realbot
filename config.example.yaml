@@ -24,6 +24,13 @@ features:
   # 启用 1/0 翻转
   bitflip:
     enable: true
+  # 错误回报
+  error:
+    # 默认启用
+    # 启用后，服务器控制台将不再记录错误，默认会将错误日志发送给管理员的私聊会话中
+    enable: true
+    chat_id:
+    topic_id:
   # 启用转发到联邦宇宙
   fedi:
     enable: true

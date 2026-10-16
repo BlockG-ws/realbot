@@ -599,7 +599,7 @@ async def handle_inline_query(query: InlineQuery):
             ], cache_time=3600)
             return
         async with aiohttp.ClientSession() as session:
-            async with session.post("https://lab.magiconch.com/api/nbnhhsh/guess", data={ "text": abbr}) as resp:
+            async with session.post("https://lab.magiconch.com/api/nbnhhsh/guess", data={ "text": abbr }) as resp:
                 guess = await resp.json()
                 meanings = guess[0].get("trans",[])
         results = ", ".join(meanings)
@@ -626,7 +626,7 @@ async def handle_inline_query(query: InlineQuery):
                 id="1",
                 title="这句话不用记",
                 input_message_content=InputTextMessageContent(
-                    message_text=f"{query_text}\n\n旁边的手下：✍✍✍✍✍✍✍✍✍✍✍\n️围观的群众：\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o/\\o"
+                    message_text=f"{query_text}\n\n旁边的手下：✍✍✍✍✍✍✍✍✍✍✍\n️围观的群众：\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o/\\\\o"
                                  f"/\\o/\\o/\\o/",
                     parse_mode=ParseMode.MARKDOWN_V2
                 ),

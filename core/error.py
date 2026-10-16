@@ -71,7 +71,7 @@ async def handle_error(event: ErrorEvent, bot: Bot) -> None:
         else:
             # 短错误：直接文本发送
             text = (
-                f"🚨 <b>Bot 发生异常</b>\n"
+                f"<b>Bot 运行时发生异常</b>\n"
                 f"<b>来源:</b> <code>{html_decoration.quote(context)}</code>\n"
                 f"<b>类型:</b> <code>{html_decoration.quote(e_type)}</code>\n"
                 f"<b>信息:</b> <code>{html_decoration.quote(e_msg)}</code>\n\n"

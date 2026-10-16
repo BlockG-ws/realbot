@@ -49,6 +49,8 @@ class ThreeKingdomsMiddleWare(BaseMiddleware):
                 await event.reply("死亡是凉爽的夏夜，可供人无忧地安眠")
             if "跳跳虎" in text and not "脆脆鲨" in text:
                 await event.reply("两头脆脆鲨")
+            if "325" in text:
+                await event.reply("苦也，这也言周")
             import random
             if random.randint(1,1000) == 1:
                 await event.reply("此话说的痛切，当浮一大白")
